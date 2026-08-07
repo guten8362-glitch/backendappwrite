@@ -46,8 +46,34 @@ export const filterUsersWithTargets = async (userIds: string[]): Promise<string[
 
   const validIds: string[] = [];
   for (const id of userIds) {
+    if (!id) continue;
+    
+    let targetId = id;
+    
+    // Resolve email to Auth ID if it's an email
+    if (id.includes('@')) {
+      try {
+        const query = encodeURIComponent(`equal("email", ["${id}"])`);
+        const userRes = await fetch(`${APPWRITE_CONFIG.endpoint}/users?queries[]=${query}`, {
+          headers: {
+            'X-Appwrite-Project': APPWRITE_CONFIG.projectId,
+            'X-Appwrite-Key': apiKey,
+          },
+        });
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          if (userData.users && userData.users.length > 0) {
+            targetId = userData.users[0].$id;
+            console.log(`✅ Resolved email ${id} to Auth ID ${targetId}`);
+          }
+        }
+      } catch (e) {
+        console.warn(`Could not resolve email ${id}`, e);
+      }
+    }
+
     try {
-      const res = await fetch(`${APPWRITE_CONFIG.endpoint}/users/${id}/targets`, {
+      const res = await fetch(`${APPWRITE_CONFIG.endpoint}/users/${targetId}/targets`, {
         headers: {
           'Content-Type': 'application/json',
           'X-Appwrite-Project': APPWRITE_CONFIG.projectId,
@@ -57,14 +83,14 @@ export const filterUsersWithTargets = async (userIds: string[]): Promise<string[
       if (res.ok) {
         const data = await res.json();
         if (data.targets && data.targets.length > 0) {
-          validIds.push(id);
+          if (!validIds.includes(targetId)) validIds.push(targetId);
         }
       } else {
-        // If query fails, include to attempt dispatch
-        validIds.push(id);
+        // If it's a valid ID (not an email), include it as fallback
+        if (!targetId.includes('@') && !validIds.includes(targetId)) validIds.push(targetId);
       }
     } catch {
-      validIds.push(id);
+      if (!targetId.includes('@') && !validIds.includes(targetId)) validIds.push(targetId);
     }
   }
   return validIds;
