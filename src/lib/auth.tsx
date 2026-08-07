@@ -38,6 +38,36 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// Helper to synchronize FCM tokens with a single Appwrite Push Target per device
+const syncPushTarget = async (token: string) => {
+  let targetId = localStorage.getItem("push_target_id");
+  if (targetId) {
+    try {
+      await account.updatePushTarget(targetId, token);
+      console.log("Appwrite Push Target updated successfully!");
+      return;
+    } catch (e) {
+      console.warn("Failed to update push target, will attempt to recreate...", e);
+    }
+  }
+
+  // If no existing target, or update failed (deleted from server), create a new one
+  targetId = ID.unique();
+  try {
+    await account.createPushTarget(targetId, token, "6a6c0163000e309089af");
+    console.log("Appwrite Push Target created with provider ID!");
+  } catch (pErr) {
+    try {
+      await account.createPushTarget(targetId, token);
+      console.log("Appwrite Push Target created successfully (fallback)!");
+    } catch (pErr2) {
+      console.warn("Appwrite Push Target creation failed:", pErr2);
+      return;
+    }
+  }
+  localStorage.setItem("push_target_id", targetId);
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [realUser, setRealUser] = useState<User | null>(null);
   const [impersonatedUser, setImpersonatedUser] = useState<User | null>(() => getStoredImpersonatedUser());
@@ -62,17 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const token = await requestFCMToken();
             if (token) {
               await updateUserFCMToken(currentUser.email, token, currentUser.$id);
-              try {
-                await account.createPushTarget(ID.unique(), token, "6a6c0163000e309089af");
-                console.log("Appwrite Push Target created with provider ID!");
-              } catch (pErr) {
-                try {
-                  await account.createPushTarget(ID.unique(), token);
-                  console.log("Appwrite Push Target created successfully!");
-                } catch (pErr2) {
-                  console.warn("Appwrite Push Target creation info:", pErr2);
-                }
-              }
+              await syncPushTarget(token);
               localStorage.setItem("fcm_token", token);
             }
           } catch (e) {
@@ -123,17 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = await requestFCMToken();
         if (token) {
           await updateUserFCMToken(email, token);
-          try {
-            await account.createPushTarget(ID.unique(), token);
-            console.log("Appwrite Push Target registered successfully.");
-          } catch (tError) {
-            try {
-              await account.createPushTarget(ID.unique(), token, "6a6c0163000e309089af");
-              console.log("Appwrite Push Target registered with provider ID!");
-            } catch (tError2) {
-              console.error("Appwrite Push Target error", tError2);
-            }
-          }
+          await syncPushTarget(token);
         }
       } catch (err) {
         console.error("FCM Token Registration failed", err);
