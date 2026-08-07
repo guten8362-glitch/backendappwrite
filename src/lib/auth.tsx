@@ -40,32 +40,38 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 // Helper to synchronize FCM tokens with a single Appwrite Push Target per device
 const syncPushTarget = async (token: string) => {
-  let targetId = localStorage.getItem("push_target_id");
-  if (targetId) {
-    try {
-      await account.updatePushTarget(targetId, token);
-      console.log("Appwrite Push Target updated successfully!");
-      return;
-    } catch (e) {
-      console.warn("Failed to update push target, will attempt to recreate...", e);
-    }
-  }
-
-  // If no existing target, or update failed (deleted from server), create a new one
-  targetId = ID.unique();
   try {
-    await account.createPushTarget(targetId, token, "6a6c0163000e309089af");
-    console.log("Appwrite Push Target created with provider ID!");
-  } catch (pErr) {
-    try {
-      await account.createPushTarget(targetId, token);
-      console.log("Appwrite Push Target created successfully (fallback)!");
-    } catch (pErr2) {
-      console.warn("Appwrite Push Target creation failed:", pErr2);
-      return;
+    const currentUser = await account.get();
+    
+    // Clean up existing push targets to avoid expired tokens accumulating
+    if (currentUser.targets && currentUser.targets.length > 0) {
+      for (const t of currentUser.targets) {
+        if (t.providerType === 'push') {
+          try {
+            await account.deletePushTarget(t.$id);
+            console.log(`🧹 Deleted old push target to avoid expiry issues: ${t.$id}`);
+          } catch (delErr) {
+            console.warn(`Failed to delete old push target: ${t.$id}`, delErr);
+          }
+        }
+      }
     }
+
+    const targetId = ID.unique();
+    try {
+      await account.createPushTarget(targetId, token, "6a6c0163000e309089af");
+      console.log("✅ Appwrite Push Target created with provider ID!");
+    } catch (pErr) {
+      try {
+        await account.createPushTarget(targetId, token);
+        console.log("✅ Appwrite Push Target created successfully (fallback)!");
+      } catch (pErr2) {
+        console.warn("❌ Appwrite Push Target creation failed:", pErr2);
+      }
+    }
+  } catch (err) {
+    console.error("Failed to sync push targets:", err);
   }
-  localStorage.setItem("push_target_id", targetId);
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
