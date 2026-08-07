@@ -426,7 +426,6 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         if (stage === "confirmed") {
           updateData.approvedBy = draft.coordinator || "MVIT Principal";
           const approver = updateData.approvedBy;
-          createNotification({ title: "✅ Booking Confirmed", message: `Hello ${applicantName}, your booking for ${b?.eventName || id} was successfully approved.`, bookingId: id, type: "success" });
           
           let requesterEmail = (b as any)?.requesterEmail;
           if (!requesterEmail && b?.requesterId) {
@@ -434,6 +433,14 @@ export function BookingProvider({ children }: { children: ReactNode }) {
              const reqUser = allUsers.find(u => u.$id === b.requesterId || u.user_id === b.requesterId);
              if (reqUser) requesterEmail = (reqUser as any).mail_id || reqUser.email;
           }
+
+          createNotification({ 
+            userId: b?.requesterId,
+            title: "✅ Booking Confirmed", 
+            message: `Hello ${applicantName}, your booking for ${b?.eventName || id} was successfully approved.`, 
+            bookingId: id, 
+            type: "success" 
+          });
           const recipients = [requesterEmail, b?.requesterId].filter(Boolean) as string[];
           if (recipients.length > 0) {
             sendPushNotification(
@@ -453,7 +460,6 @@ export function BookingProvider({ children }: { children: ReactNode }) {
             updateData.rejectionReason = "Rejected by authority";
           }
           const rejector = updateData.rejectedBy || "Authority";
-          createNotification({ title: "Booking Rejected", message: `Hello ${applicantName}, your booking for ${b?.eventName || id} was rejected. Reason: ${updateData.rejectionReason}`, bookingId: id, type: "error" });
           
           let requesterEmail = (b as any)?.requesterEmail;
           if (!requesterEmail && b?.requesterId) {
@@ -461,6 +467,14 @@ export function BookingProvider({ children }: { children: ReactNode }) {
              const reqUser = allUsers.find(u => u.$id === b.requesterId || u.user_id === b.requesterId);
              if (reqUser) requesterEmail = (reqUser as any).mail_id || reqUser.email;
           }
+
+          createNotification({ 
+            userId: b?.requesterId,
+            title: "Booking Rejected", 
+            message: `Hello ${applicantName}, your booking for ${b?.eventName || id} was rejected. Reason: ${updateData.rejectionReason}`, 
+            bookingId: id, 
+            type: "error" 
+          });
           const recipients = [requesterEmail, b?.requesterId].filter(Boolean) as string[];
           if (recipients.length > 0) {
             sendPushNotification(

@@ -308,67 +308,7 @@ function BookingForm() {
           placeholder="Specify any AV equipment, projector, audio setup or seating preferences..."
         />
 
-        {/* Event Poster / Banner Image Field */}
-        <div className="space-y-2">
-          <label className="block text-[0.8rem] font-medium text-muted-foreground flex items-center justify-between">
-            <span className="flex items-center gap-1.5 font-semibold text-foreground">
-              <ImageIcon className="h-4 w-4 text-primary" /> Event Poster / Banner Image (Optional)
-            </span>
-            <span className="text-[0.72rem] text-muted-foreground">JPG, PNG or WEBP</span>
-          </label>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <label className="relative flex flex-1 items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-card p-3 cursor-pointer hover:border-primary/50 hover:bg-muted/40 transition-all">
-              <UploadCloud className="h-4 w-4 text-muted-foreground" />
-              <span className="text-[0.85rem] font-medium text-muted-foreground">
-                {form.eventImage ? "Change Image File" : "Choose Image File"}
-              </span>
-              <input
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                      setForm((f) => ({ ...f, eventImage: reader.result as string }));
-                    };
-                    reader.readAsDataURL(file);
-                  }
-                }}
-              />
-            </label>
-
-            <div className="flex-1">
-              <input
-                type="url"
-                value={form.eventImage?.startsWith("data:") ? "" : form.eventImage || ""}
-                onChange={(e) => setForm((f) => ({ ...f, eventImage: e.target.value }))}
-                placeholder="Or paste image URL (https://...)"
-                className="h-11 w-full rounded-xl border border-border bg-card px-3.5 text-[0.85rem] outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
-              />
-            </div>
-          </div>
-
-          {form.eventImage && (
-            <div className="relative mt-2 h-32 w-full overflow-hidden rounded-xl border border-border bg-muted/40 p-2 flex items-center justify-center">
-              <img
-                src={form.eventImage}
-                alt="Event Poster Preview"
-                className="h-full max-h-full object-contain rounded-lg shadow-sm"
-              />
-              <button
-                type="button"
-                onClick={() => setForm((f) => ({ ...f, eventImage: "" }))}
-                className="absolute top-2 right-2 rounded-full bg-slate-900/80 p-1 text-white hover:bg-red-600 transition-colors"
-                title="Remove Image"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
 
         {error && (
           <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-[0.88rem] font-medium text-red-700 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300">

@@ -31,3 +31,9 @@ messaging.onBackgroundMessage(function(payload) {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
   // Custom logic can go here (e.g., updating IndexedDB, badges), but NO showNotification!
 });
+
+// PWA Installability Requirement: Handle fetch events (pass-through)
+self.addEventListener('fetch', function(event) {
+  // Pass through all requests to network
+  return;
+});

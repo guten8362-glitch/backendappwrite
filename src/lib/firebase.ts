@@ -57,7 +57,7 @@ export const requestFCMToken = async () => {
 
     let registration: ServiceWorkerRegistration | undefined;
     try {
-      registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
+      registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js?v=2', { scope: '/' });
       await navigator.serviceWorker.ready;
     } catch (swErr) {
       console.warn("FCM: Service worker registration warning:", swErr);
@@ -84,9 +84,10 @@ export const requestFCMToken = async () => {
 
     if (token) {
       const prevToken = localStorage.getItem("fcm_token");
-      if (prevToken !== token) {
-        console.log("[FCM TOKEN ROTATED/REFRESHED]", { oldToken: prevToken ? prevToken.substring(0, 10) + "..." : "none", newToken: token.substring(0, 10) + "..." });
+      if (prevToken && prevToken !== token) {
+        console.log("[FCM TOKEN ROTATED/REFRESHED]", { oldToken: prevToken.substring(0, 10) + "...", newToken: token.substring(0, 10) + "..." });
         localStorage.setItem("fcm_token_refreshed_at", new Date().toISOString());
+        localStorage.setItem("fcm_token_prev", prevToken);
       }
       localStorage.setItem("fcm_token", token);
       console.log("FCM Token generated successfully!", token);

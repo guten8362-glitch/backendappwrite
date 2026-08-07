@@ -39,14 +39,33 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 // Helper to synchronize FCM tokens with a single Appwrite Push Target per device
-const syncPushTarget = async (token: string) => {
+export const syncPushTarget = async (token: string, oldToken?: string) => {
   try {
     const currentUser = await account.get();
     
-    // Check if this exact token is already registered to avoid duplicates
+    // Check for existing target and delete old/expired tokens
     if (currentUser.targets && currentUser.targets.length > 0) {
-      const existing = currentUser.targets.find(t => t.providerType === 'push' && t.identifier === token);
-      if (existing) {
+      let targetExists = false;
+      
+      for (const t of currentUser.targets) {
+        if (t.providerType === 'push') {
+          // If this exact token is already registered, keep it
+          if (t.identifier === token) {
+            targetExists = true;
+          } 
+          // Delete if it matches oldToken or if Appwrite marked it expired
+          else if (t.identifier === oldToken || t.expired) {
+            try {
+              console.log("🗑️ Deleting old/expired push target:", t.$id);
+              await account.deletePushTarget(t.$id);
+            } catch (err) {
+              console.warn("Failed to delete old target:", err);
+            }
+          }
+        }
+      }
+
+      if (targetExists) {
         console.log("✅ Appwrite Push Target already exists for this device.");
         return;
       }
@@ -91,10 +110,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Always fetch and sync the latest FCM token for the active logged-in device
           try {
             const token = await requestFCMToken();
+            const prevToken = localStorage.getItem("fcm_token_prev") || undefined;
             if (token) {
               await updateUserFCMToken(currentUser.email, token, currentUser.$id);
-              await syncPushTarget(token);
+              await syncPushTarget(token, prevToken);
               localStorage.setItem("fcm_token", token);
+              localStorage.removeItem("fcm_token_prev");
             }
           } catch (e) {
             console.error("FCM Token fetch failed on checkSession:", e);
@@ -142,9 +163,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       try {
         const token = await requestFCMToken();
+        const prevToken = localStorage.getItem("fcm_token_prev") || undefined;
         if (token) {
-          await updateUserFCMToken(email, token);
-          await syncPushTarget(token);
+          await updateUserFCMToken(email, token, currentUser?.$id);
+          await syncPushTarget(token, prevToken);
+          localStorage.removeItem("fcm_token_prev");
         }
       } catch (err) {
         console.error("FCM Token Registration failed", err);

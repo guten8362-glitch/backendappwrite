@@ -101,6 +101,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
       },
       { rel: "icon", href: "/logo.svg", type: "image/svg+xml" },
+      { rel: "manifest", href: "/manifest.json" },
+      { rel: "apple-touch-icon", href: "/logo.svg" },
     ],
   }),
   shellComponent: RootShell,
@@ -134,13 +136,20 @@ function RootComponent() {
 
     // Listen for foreground Firebase push notifications
     setupFCMListener((payload) => {
+      console.log("Foreground push notification received", payload);
       const title = payload?.notification?.title || payload?.data?.title || "Notification";
-      const body = payload?.notification?.body || payload?.data?.body || payload?.data?.message || "You have a new update.";
+      const body = payload?.notification?.body || payload?.data?.body || payload?.data?.message || "";
       
-      toast(title, {
-        description: body,
-        duration: 8000,
-      });
+      // Force native OS notification even when app is open
+      if ("Notification" in window && Notification.permission === "granted") {
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.showNotification(title, {
+            body: body,
+            icon: '/logos/logo4.jpg',
+            data: payload?.data
+          });
+        });
+      }
     });
 
     return () => clearTimeout(timer);

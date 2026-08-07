@@ -141,28 +141,8 @@ function LoginPage() {
   useEffect(() => {
     if (ready && user) {
       sessionStorage.setItem("justLoggedIn", "true");
-      
-      const finalizeLogin = async () => {
-        try {
-          const token = await requestFCMToken();
-          if (token) {
-            await updateUserFCMToken(user.email, token);
-            try {
-              await account.createPushTarget(ID.unique(), token, "6a6c0163000e309089af");
-            } catch (tError: any) {
-              console.error("Appwrite Push Target error", tError);
-              alert("Appwrite Target Error: " + (tError.message || JSON.stringify(tError)));
-            }
-          }
-        } catch (err) {
-          console.error("FCM Token Registration failed", err);
-        }
-        
-        const targetPath = getDefaultRouteForUser(user);
-        navigate({ to: targetPath });
-      };
-      
-      finalizeLogin();
+      const targetPath = getDefaultRouteForUser(user);
+      navigate({ to: targetPath });
     }
   }, [ready, user, navigate]);
 

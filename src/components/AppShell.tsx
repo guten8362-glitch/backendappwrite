@@ -6,6 +6,7 @@ import { useAuth, isCoordinatorUser, isSuperAdminUser } from "@/lib/auth";
 import { subscribeToNotifications } from "@/lib/appwrite/realtime";
 import { WelcomeSplashModal } from "@/components/WelcomeSplashModal";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
+import { NotificationBanner } from "@/components/NotificationBanner";
 
 const navItems = [
   { to: "/auditoriums", label: "Book Venue", icon: Building2 },
@@ -109,6 +110,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       )}
 
       <main className={cn("mx-auto w-full", pathname === "/login" ? "max-w-md px-4 flex-1 flex flex-col justify-center py-2" : "max-w-5xl px-4 sm:px-6 pt-6 sm:pt-10", showUserUI ? "pb-36 sm:pb-44" : "pb-10")}>
+        <NotificationBanner />
         {children}
       </main>
 
