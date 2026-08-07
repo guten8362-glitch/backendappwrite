@@ -170,6 +170,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     stopImpersonation();
     try {
+      const currentUser = await account.get();
+      // Clean up push targets before logging out
+      if (currentUser?.targets && currentUser.targets.length > 0) {
+        for (const t of currentUser.targets) {
+          if (t.providerType === 'push') {
+            try {
+              await account.deletePushTarget(t.$id);
+            } catch (delErr) {
+              console.warn(`Failed to delete push target on logout: ${t.$id}`, delErr);
+            }
+          }
+        }
+      }
       await logoutUser();
     } catch (e) {
       console.error("Logout error", e);
