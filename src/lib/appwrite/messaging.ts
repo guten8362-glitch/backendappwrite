@@ -53,8 +53,8 @@ export const filterUsersWithTargets = async (userIds: string[]): Promise<string[
     // Resolve email to Auth ID if it's an email
     if (id.includes('@')) {
       try {
-        const query = encodeURIComponent(`equal("email", ["${id}"])`);
-        const userRes = await fetch(`${APPWRITE_CONFIG.endpoint}/users?queries[]=${query}`, {
+        const query = encodeURIComponent(id);
+        const userRes = await fetch(`${APPWRITE_CONFIG.endpoint}/users?search=${query}`, {
           headers: {
             'X-Appwrite-Project': APPWRITE_CONFIG.projectId,
             'X-Appwrite-Key': apiKey,
