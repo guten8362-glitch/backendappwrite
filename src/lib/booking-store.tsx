@@ -3,7 +3,7 @@ import { listBookings, createBooking, updateBooking, deleteBooking, createNotifi
 import { subscribeToBookings } from "./appwrite/realtime";
 import { fetchAuditoriums } from "./auditoriums";
 import type { Auditorium } from "./auditoriums";
-import { getUserIdByEmail, sendPushNotification } from "./appwrite/messaging";
+import { getUserIdByEmail, sendPushNotification, sendEmailNotification } from "./appwrite/messaging";
 import { getAllUsersFromDatabase } from "./appwrite/users";
 import { recordAuditLog } from "./services/audit";
 import { getStoredImpersonatedUser } from "./services/impersonation";

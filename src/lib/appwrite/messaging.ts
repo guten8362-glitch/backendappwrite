@@ -152,7 +152,6 @@ export const sendPushNotification = async (userIds: string[], title: string, bod
       body,
       users: validRestTargets,
       icon: iconUrl,
-      badge: badgeUrl,
       data,
     };
     const res = await sendAppwriteMessagingRequest('/messaging/messages/push', payload);
