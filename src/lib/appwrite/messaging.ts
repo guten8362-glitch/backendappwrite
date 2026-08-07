@@ -137,11 +137,20 @@ export const sendPushNotification = async (userIds: string[], title: string, bod
   // Option 2: Direct Appwrite Messaging REST API (if VITE_APPWRITE_API_KEY configured)
   const apiKey = import.meta.env.VITE_APPWRITE_API_KEY;
   if (apiKey) {
+    // The REST API strictly requires Auth UIDs, not emails.
+    const validRestTargets = targetUserIds.filter(id => !id.includes('@'));
+    
+    if (validRestTargets.length === 0) {
+      console.warn("⚠️ No valid Auth UIDs for Direct Push API. Skipping push.");
+      console.groupEnd();
+      return null;
+    }
+
     const payload = {
       messageId: ID.unique(),
       title,
       body,
-      users: targetUserIds,
+      users: validRestTargets,
       icon: iconUrl,
       badge: badgeUrl,
       data,
