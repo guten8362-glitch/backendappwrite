@@ -63,8 +63,15 @@ export const filterUsersWithTargets = async (userIds: string[]): Promise<string[
         if (userRes.ok) {
           const userData = await userRes.json();
           if (userData.users && userData.users.length > 0) {
-            targetId = userData.users[0].$id;
-            console.log(`✅ Resolved email ${id} to Auth ID ${targetId}`);
+            // Appwrite 'search' matches any user containing the string (e.g. '@gmail.com' matches all).
+            // We MUST find the exact match to avoid resolving to the wrong user.
+            const exactUser = userData.users.find((u: any) => u.email === id);
+            if (exactUser) {
+              targetId = exactUser.$id;
+              console.log(`✅ Resolved email ${id} to Auth ID ${targetId}`);
+            } else {
+              console.warn(`❌ Could not find exact email match for ${id}`);
+            }
           }
         }
       } catch (e) {
