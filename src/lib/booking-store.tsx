@@ -30,7 +30,7 @@ const notifyRole = async (role: string, subject: string, content: string, target
     }
 
     const userIds: string[] = targetUsers
-      .flatMap(u => [u.email, u.$id])
+      .flatMap(u => [(u as any).mail_id, u.email])
       .filter((id): id is string => Boolean(id));
 
     // 1. Record In-App database notifications for target users (Synced with Appwrite DB)
@@ -428,7 +428,13 @@ export function BookingProvider({ children }: { children: ReactNode }) {
           const approver = updateData.approvedBy;
           createNotification({ title: "✅ Booking Confirmed", message: `Hello ${applicantName}, your booking for ${b?.eventName || id} was successfully approved.`, bookingId: id, type: "success" });
           
-          const recipients = [(b as any)?.requesterEmail, b?.requesterId].filter(Boolean) as string[];
+          let requesterEmail = (b as any)?.requesterEmail;
+          if (!requesterEmail && b?.requesterId) {
+             const allUsers = await getAllUsersFromDatabase();
+             const reqUser = allUsers.find(u => u.$id === b.requesterId || u.user_id === b.requesterId);
+             if (reqUser) requesterEmail = (reqUser as any).mail_id || reqUser.email;
+          }
+          const recipients = [requesterEmail, b?.requesterId].filter(Boolean) as string[];
           if (recipients.length > 0) {
             sendPushNotification(
               recipients, 
@@ -449,7 +455,13 @@ export function BookingProvider({ children }: { children: ReactNode }) {
           const rejector = updateData.rejectedBy || "Authority";
           createNotification({ title: "Booking Rejected", message: `Hello ${applicantName}, your booking for ${b?.eventName || id} was rejected. Reason: ${updateData.rejectionReason}`, bookingId: id, type: "error" });
           
-          const recipients = [(b as any)?.requesterEmail, b?.requesterId].filter(Boolean) as string[];
+          let requesterEmail = (b as any)?.requesterEmail;
+          if (!requesterEmail && b?.requesterId) {
+             const allUsers = await getAllUsersFromDatabase();
+             const reqUser = allUsers.find(u => u.$id === b.requesterId || u.user_id === b.requesterId);
+             if (reqUser) requesterEmail = (reqUser as any).mail_id || reqUser.email;
+          }
+          const recipients = [requesterEmail, b?.requesterId].filter(Boolean) as string[];
           if (recipients.length > 0) {
             sendPushNotification(
               recipients, 

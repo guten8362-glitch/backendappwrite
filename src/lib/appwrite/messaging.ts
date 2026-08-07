@@ -56,63 +56,8 @@ export const resolveAuthUserIdsByEmailOrId = async (inputIds: string[]): Promise
     const authData = await authRes.json();
     const authUsers: any[] = authData.users || [];
 
-    // 2. Fetch all DB Users for email lookup fallback
-    let dbUsers: any[] = [];
-    try {
-      const dbRes = await fetch(`${APPWRITE_CONFIG.endpoint}/databases/${APPWRITE_CONFIG.databaseId}/collections/${APPWRITE_CONFIG.collections.users}/documents?limit=100`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Appwrite-Project': APPWRITE_CONFIG.projectId,
-          'X-Appwrite-Key': apiKey,
-        },
-      });
-      if (dbRes.ok) {
-        const dbData = await dbRes.json();
-        dbUsers = dbData.documents || [];
-      }
-    } catch {}
-
-    const resolvedAuthIds: string[] = [];
-
-    for (const input of inputIds) {
-      if (!input) continue;
-
-      // Case A: Input is an email string
-      if (input.includes('@')) {
-        const matched = authUsers.find(a => (a.email || '').toLowerCase().trim() === input.toLowerCase().trim());
-        if (matched?.$id) resolvedAuthIds.push(matched.$id);
-        continue;
-      }
-
-      // Case B: Input is directly an Auth User $id
-      const directAuth = authUsers.find(a => a.$id === input);
-      if (directAuth) {
-        resolvedAuthIds.push(directAuth.$id);
-        continue;
-      }
-
-      // Case C: Input is a DB Document ID, match via DB user email to Auth User $id
-      const dbUser = dbUsers.find(u => u.$id === input || u.user_id === input);
-      if (dbUser) {
-        const email = (dbUser.mail_id || dbUser.email || '').toLowerCase().trim();
-        const matched = authUsers.find(a => (a.email || '').toLowerCase().trim() === email);
-        if (matched?.$id) {
-          resolvedAuthIds.push(matched.$id);
-          continue;
-        }
-      }
-
-      // Fallback: keep original input
-      resolvedAuthIds.push(input);
-    }
-
-    return Array.from(new Set(resolvedAuthIds));
-  } catch (err) {
-    console.warn("Exception resolving Auth IDs:", err);
-    return inputIds;
-  }
-};
-
+// Removed resolveAuthUserIdsByEmailOrId as it incorrectly mapped emails to DB document IDs.
+// The Serverless Function correctly maps emails to Auth User IDs natively.
 export const filterUsersWithTargets = async (userIds: string[]): Promise<string[]> => {
   const apiKey = import.meta.env.VITE_APPWRITE_API_KEY || '';
   if (!apiKey || !userIds || userIds.length === 0) return userIds;
@@ -156,10 +101,7 @@ export const sendPushNotification = async (userIds: string[], title: string, bod
     return null;
   }
 
-  const resolvedUserIds = await resolveAuthUserIdsByEmailOrId(userIds);
-  console.log("🔑 Resolved Appwrite Auth User IDs:", resolvedUserIds);
-
-  const targetUserIds = await filterUsersWithTargets(resolvedUserIds);
+  const targetUserIds = await filterUsersWithTargets(userIds);
   console.log("✅ Validated Recipients with Active Targets:", targetUserIds);
 
   if (targetUserIds.length === 0) {
