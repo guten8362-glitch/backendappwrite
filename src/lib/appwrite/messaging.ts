@@ -191,11 +191,14 @@ export const sendEmailNotification = async (users: string[], subject: string, co
   // Option 2: Direct Appwrite Messaging REST API (if VITE_APPWRITE_API_KEY configured)
   const apiKey = import.meta.env.VITE_APPWRITE_API_KEY;
   if (apiKey) {
+    const validRestTargets = users.filter(id => !id.includes('@'));
+    if (validRestTargets.length === 0) return null;
+    
     const payload = {
       messageId: ID.unique(),
       subject,
       content,
-      users,
+      users: validRestTargets,
     };
     return await sendAppwriteMessagingRequest('/messaging/messages/email', payload);
   }
