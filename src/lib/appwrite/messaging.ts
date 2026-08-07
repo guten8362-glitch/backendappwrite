@@ -38,24 +38,6 @@ const sendAppwriteMessagingRequest = async (endpoint: string, payload: any) => {
   }
 };
 
-export const resolveAuthUserIdsByEmailOrId = async (inputIds: string[]): Promise<string[]> => {
-  const apiKey = import.meta.env.VITE_APPWRITE_API_KEY || '';
-  if (!apiKey || !inputIds || inputIds.length === 0) return inputIds;
-
-  try {
-    // 1. Fetch all Auth Users
-    const authRes = await fetch(`${APPWRITE_CONFIG.endpoint}/users`, {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Appwrite-Project': APPWRITE_CONFIG.projectId,
-        'X-Appwrite-Key': apiKey,
-      },
-    });
-
-    if (!authRes.ok) return inputIds;
-    const authData = await authRes.json();
-    const authUsers: any[] = authData.users || [];
-
 // Removed resolveAuthUserIdsByEmailOrId as it incorrectly mapped emails to DB document IDs.
 // The Serverless Function correctly maps emails to Auth User IDs natively.
 export const filterUsersWithTargets = async (userIds: string[]): Promise<string[]> => {
