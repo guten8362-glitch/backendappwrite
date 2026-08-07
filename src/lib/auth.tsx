@@ -43,17 +43,12 @@ const syncPushTarget = async (token: string) => {
   try {
     const currentUser = await account.get();
     
-    // Clean up existing push targets to avoid expired tokens accumulating
+    // Check if this exact token is already registered to avoid duplicates
     if (currentUser.targets && currentUser.targets.length > 0) {
-      for (const t of currentUser.targets) {
-        if (t.providerType === 'push') {
-          try {
-            await account.deletePushTarget(t.$id);
-            console.log(`🧹 Deleted old push target to avoid expiry issues: ${t.$id}`);
-          } catch (delErr) {
-            console.warn(`Failed to delete old push target: ${t.$id}`, delErr);
-          }
-        }
+      const existing = currentUser.targets.find(t => t.providerType === 'push' && t.identifier === token);
+      if (existing) {
+        console.log("✅ Appwrite Push Target already exists for this device.");
+        return;
       }
     }
 
