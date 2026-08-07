@@ -461,7 +461,6 @@ function Admin() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-[1.15rem] font-semibold text-foreground">
-                    <h2 className="text-[1.15rem] font-semibold text-foreground">
                       {hall?.name || (b.auditoriumId !== "undefined" && b.auditoriumId ? b.auditoriumId : "Venue Not Selected")}
                     </h2>
                   </div>
@@ -568,7 +567,6 @@ function Admin() {
           <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl border border-border bg-card p-6 shadow-2xl sm:p-8">
             <div className="mb-4 flex items-start justify-between">
               <div>
-                <h2 className="text-[1.25rem] font-semibold text-foreground">
                 <h2 className="text-[1.25rem] font-semibold text-foreground">
                   {getAuditorium(selectedBooking.auditoriumId)?.name || (selectedBooking.auditoriumId !== "undefined" && selectedBooking.auditoriumId ? selectedBooking.auditoriumId : "Venue Not Selected")}
                 </h2>
