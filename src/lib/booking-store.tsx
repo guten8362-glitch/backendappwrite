@@ -221,7 +221,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
             ...doc,
             id: doc.$id,
             createdAt: doc.createdAt || doc.$createdAt,
-            auditoriumId: doc.hallId || extra.auditoriumId,
+            auditoriumId: (typeof doc.hallId === 'object' && doc.hallId !== null) ? doc.hallId.$id : (doc.hallId || extra.auditoriumId),
             institution: doc.collegeId || extra.institution,
             department: doc.department || extra.department,
             eventName: doc.eventName || extra.eventName,
