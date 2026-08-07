@@ -48,7 +48,7 @@ const notifyRole = async (role: string, subject: string, content: string, target
     // 2. Send Push Notification with Email Fallback
     if (userIds.length > 0) {
       try {
-        const pushRes = await sendPushNotification(userIds, subject, content);
+        const pushRes = await sendPushNotification(userIds, subject, content, undefined, targetInstitution);
         // If push notification returned null (e.g., target user has no registered push target), send email
         if (!pushRes) {
           console.warn("Push notification target missing. Attempting Email notification fallback...");

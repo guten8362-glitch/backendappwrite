@@ -26,7 +26,7 @@ export default async ({ req, res, log, error }) => {
       payload = req.body;
     }
 
-    const { action, users, title, body, subject, content, data, icon } = payload;
+    const { action, users, title, body, subject, content, data, icon, badge } = payload;
 
     if (action === 'push') {
       if (!users || !users.length) {
@@ -94,7 +94,7 @@ export default async ({ req, res, log, error }) => {
         undefined, // sound
         undefined, // color
         undefined, // tag
-        undefined, // badge
+        badge || undefined, // badge
         false // draft
       );
 

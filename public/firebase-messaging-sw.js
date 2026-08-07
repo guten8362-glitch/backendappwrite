@@ -24,18 +24,10 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 // Optional: Background message handler
+// We do NOT call showNotification manually here because Appwrite's createPush always includes
+// a "notification" payload, which causes Chrome/Android to show a system notification automatically.
+// Showing one here would result in duplicate notifications.
 messaging.onBackgroundMessage(function(payload) {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  const notificationTitle = payload?.notification?.title || payload?.data?.title || payload?.title || "Book My Auditorium";
-  const notificationOptions = {
-    body: payload?.notification?.body || payload?.data?.body || payload?.data?.message || payload?.body || "New update received",
-    icon: 'https://backendappwrite.vercel.app/logos/logo4.jpg',
-    badge: 'https://backendappwrite.vercel.app/logos/logo4.jpg',
-    vibrate: [200, 100, 200],
-    tag: payload?.data?.bookingId || 'bma-push',
-    renotify: true,
-    data: payload?.data || {}
-  };
-
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  // Custom logic can go here (e.g., updating IndexedDB, badges), but NO showNotification!
 });

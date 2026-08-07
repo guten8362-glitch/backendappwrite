@@ -143,7 +143,7 @@ export const filterUsersWithTargets = async (userIds: string[]): Promise<string[
   return validIds;
 };
 
-export const sendPushNotification = async (userIds: string[], title: string, body: string, data?: any) => {
+export const sendPushNotification = async (userIds: string[], title: string, body: string, data?: any, institution?: string) => {
   const timestamp = new Date().toISOString();
   console.group(`[PUSH NOTIFICATION DIAGNOSTICS - ${timestamp}]`);
   console.log("📋 Request Title:", title);
@@ -168,6 +168,21 @@ export const sendPushNotification = async (userIds: string[], title: string, bod
     return null;
   }
 
+  // Determine dynamic icon based on institution
+  let iconUrl = window.location.origin + '/logos/logo4.jpg'; // default (MVIT)
+  if (institution) {
+    const instStr = institution.toLowerCase();
+    if (instStr.includes('kns')) {
+      iconUrl = window.location.origin + '/logos/logo1.jpg';
+    } else if (instStr.includes('someother')) { // add more mappings as needed
+      iconUrl = window.location.origin + '/logos/logo2.jpg';
+    }
+    // You can easily add more mappings here!
+  }
+
+  // Determine badge (small status bar icon, must be transparent/monochrome PNG)
+  const badgeUrl = window.location.origin + '/logo192.png'; // Using generic PWA logo for the badge
+
   // Option 1: Appwrite Serverless Function (if function ID configured)
   if (APPWRITE_CONFIG.notificationFunctionId) {
     try {
@@ -177,7 +192,8 @@ export const sendPushNotification = async (userIds: string[], title: string, bod
         title,
         body,
         data,
-        icon: window.location.origin + '/logos/logo4.jpg',
+        icon: iconUrl,
+        badge: badgeUrl,
       };
       const res = await functions.createExecution(
         APPWRITE_CONFIG.notificationFunctionId,
@@ -202,7 +218,8 @@ export const sendPushNotification = async (userIds: string[], title: string, bod
       title,
       body,
       users: targetUserIds,
-      icon: window.location.origin + '/logos/logo4.jpg',
+      icon: iconUrl,
+      badge: badgeUrl,
       data,
     };
     const res = await sendAppwriteMessagingRequest('/messaging/messages/push', payload);
