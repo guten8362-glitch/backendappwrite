@@ -1,4 +1,4 @@
-import { Client, Messaging, Users, ID } from 'node-appwrite';
+import { Client, Messaging, Users, ID, Query } from 'node-appwrite';
 
 /**
  * Appwrite Serverless Function for Notification Service
@@ -38,27 +38,39 @@ export default async ({ req, res, log, error }) => {
       // Resolve emails to Auth User IDs
       const usersSdk = new Users(client);
       const resolvedTargetIds = new Set();
+      let hasEmail = false;
+      let resolvedAtLeastOneEmail = false;
 
       for (const identifier of users) {
         if (!identifier) continue;
         try {
           if (identifier.includes('@')) {
+            hasEmail = true;
             // It's an email, look up the Auth User
-            const res = await usersSdk.list([`equal("email", ["${identifier}"])`]);
+            const res = await usersSdk.list([Query.equal("email", identifier)]);
             if (res.total > 0) {
               resolvedTargetIds.add(res.users[0].$id);
+              resolvedAtLeastOneEmail = true;
             }
+          } else {
+             // It's not an email. If it's a valid Auth ID, we could add it.
+             // But since frontend sends DB IDs along with Emails, it's safer to only rely on Emails if they are provided.
+             if (!hasEmail) {
+               resolvedTargetIds.add(identifier);
+             }
           }
         } catch (e) {
           log(`Error looking up user by email ${identifier}: ${e.message}`);
         }
       }
 
-      // If we couldn't resolve any emails, fallback to any non-email IDs they sent
-      if (resolvedTargetIds.size === 0) {
-        users.forEach(u => {
-          if (!u.includes('@')) resolvedTargetIds.add(u);
-        });
+      // If they sent emails but NONE resolved, maybe fallback to raw IDs (though they are likely DB IDs)
+      if (hasEmail && !resolvedAtLeastOneEmail && resolvedTargetIds.size === 0) {
+         users.forEach(u => {
+           if (!u.includes('@')) resolvedTargetIds.add(u);
+         });
+      } else if (!hasEmail && resolvedTargetIds.size === 0) {
+         users.forEach(u => resolvedTargetIds.add(u));
       }
 
       const finalTargets = Array.from(resolvedTargetIds);
