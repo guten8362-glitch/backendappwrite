@@ -8,7 +8,7 @@ import { requestFCMToken } from "@/lib/firebase";
 import { updateUserFCMToken } from "@/lib/appwrite/users";
 import { account } from "@/lib/appwrite/client";
 import { ID } from "appwrite";
-import { Mail, Sparkles, Eye, EyeOff } from "lucide-react";
+import { Mail, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/login")({
@@ -96,8 +96,6 @@ function LoginPage() {
   const navigate = useNavigate();
   
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -159,7 +157,7 @@ function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const success = await login(email, password);
+      const success = await login(email);
       if (success) {
         sessionStorage.setItem("justLoggedIn", "true");
         // Read updated user from localStorage to get the exact role
@@ -175,7 +173,7 @@ function LoginPage() {
 
         navigate({ to: targetPath, replace: true });
       } else {
-        setError("Invalid email or password");
+        setError("Invalid email address");
       }
     } catch (err: any) {
       console.error(err);
@@ -300,29 +298,9 @@ function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                
+                placeholder="Enter your email"
                 className="h-10.5 w-full rounded-xl border border-border bg-card px-3.5 text-[0.9rem] outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
               />
-            </div>
-            <div>
-              <label className="mb-1 block text-[0.78rem] font-medium text-muted-foreground">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="h-10.5 w-full rounded-xl border border-border bg-card px-3.5 pr-10 text-[0.9rem] outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
             </div>
             <Button type="submit" disabled={loading} className="w-full h-11 text-[0.9rem] font-semibold">
               {loading ? "Signing in..." : "Sign in"}

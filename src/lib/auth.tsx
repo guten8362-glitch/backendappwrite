@@ -31,7 +31,7 @@ interface AuthContextType {
   startImpersonation: (targetUser: User) => void;
   stopImpersonation: () => void;
   ready: boolean;
-  login: (email: string, pass: string) => Promise<boolean>;
+  login: (email: string, pass?: string) => Promise<boolean>;
   logout: () => Promise<void>;
   authError: string | null;
 }
@@ -156,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStoredImpersonatedUser(null);
   };
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password?: string): Promise<boolean> => {
     try {
       await loginWithEmail(email, password);
       const currentUser = await getCurrentUser();
