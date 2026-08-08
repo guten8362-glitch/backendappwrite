@@ -26,13 +26,35 @@ export const Route = createFileRoute("/auditoriums/")({
   component: AuditoriumsIndex,
 });
 
-function AuditoriumsIndex() {
-  const auditoriums = Route.useLoaderData();
+import { useEffect, useState } from "react";
+import { useBookings } from "@/lib/booking-store";
+
+export function AuditoriumsIndex() {
+  const loaderAuditoriums = Route.useLoaderData();
+  const { auditoriums: contextAuditoriums } = useBookings();
   const { user } = useAuth();
 
-  // Venue Access Control:
-  // MVIT users can view/book all 4 venues (AV Room, Conference Room, Ground Floor, Backside).
-  const visibleAuditoriums = auditoriums;
+  const [auditoriums, setAuditoriums] = useState<any[]>(
+    Array.isArray(loaderAuditoriums) && loaderAuditoriums.length > 0
+      ? loaderAuditoriums
+      : Array.isArray(contextAuditoriums)
+      ? contextAuditoriums
+      : []
+  );
+
+  useEffect(() => {
+    if (Array.isArray(contextAuditoriums) && contextAuditoriums.length > 0) {
+      setAuditoriums(contextAuditoriums);
+    } else {
+      fetchAuditoriums().then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setAuditoriums(data);
+        }
+      });
+    }
+  }, [contextAuditoriums]);
+
+  const visibleAuditoriums = auditoriums.length > 0 ? auditoriums : (contextAuditoriums || []);
 
   return (
     <AppShell>

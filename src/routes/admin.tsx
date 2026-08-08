@@ -454,6 +454,7 @@ function Admin() {
         {filteredBookings.map((b, i) => {
           const stageInfo = getStageInfo(b.stage);
           const hall = getAuditorium(b.auditoriumId);
+          const hallDisplayName = hall?.name || (b as any).hallName || (b as any).auditoriumName || "Campus Auditorium";
 
           return (
             <Surface key={b.id} delay={i * 60} className="p-6 sm:p-7">
@@ -461,7 +462,7 @@ function Admin() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-[1.15rem] font-semibold text-foreground">
-                      {hall?.name || (b.auditoriumId !== "undefined" && b.auditoriumId ? b.auditoriumId : "Venue Not Selected")}
+                      {hallDisplayName}
                     </h2>
                   </div>
                   <div className="mt-1.5 flex items-center gap-3 text-[0.88rem] text-muted-foreground font-medium">
@@ -498,6 +499,10 @@ function Admin() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Coordinator / Audience:</span>
                   <span className="font-medium text-foreground">{b.coordinator} ({b.participants} attendees)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Chairs Required on Dais:</span>
+                  <span className="font-bold text-primary">{(b as any).chairs || (b as any).daisChairs || (b as any).extra?.chairs || "5"} chairs</span>
                 </div>
                 {b.organizerNotes && (
                   <div className="mt-2 rounded-xl border border-primary/20 bg-primary-soft/40 p-3 text-[0.82rem] font-medium text-primary shadow-xs">

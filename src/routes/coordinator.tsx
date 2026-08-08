@@ -406,12 +406,13 @@ export function CoordinatorPortal() {
             displayedBookings.map((b, i) => {
               const stageInfo = getStageInfo(b.stage);
               const hall = getAuditorium(b.auditoriumId);
+              const hallDisplayName = hall?.name || (b as any).hallName || (b as any).auditoriumName || "Campus Auditorium";
               return (
                 <Surface key={b.id} delay={i * 50} className="p-6 sm:p-7">
                   <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-bold text-foreground">{hall?.name || b.auditoriumId || "Auditorium"}</h2>
+                        <h2 className="text-lg font-bold text-foreground">{hallDisplayName}</h2>
                       </div>
                       <div className="mt-1.5 flex items-center gap-3 text-xs font-semibold text-muted-foreground">
                         <span className="flex items-center gap-1.5"><CalendarDays className="size-3.5 text-primary" /> {formatDate(b.fromDate || b.date, b.toDate)}</span>
@@ -433,6 +434,7 @@ export function CoordinatorPortal() {
                     </div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Event & Purpose:</span><span className="font-semibold text-foreground">{b.eventName} - {b.purpose}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Coordinator / Audience:</span><span className="font-semibold text-foreground">{b.coordinator} ({b.participants} attendees)</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Chairs Required on Dais:</span><span className="font-bold text-primary">{(b as any).chairs || (b as any).daisChairs || (b as any).extra?.chairs || "5"} chairs</span></div>
                     {b.organizerNotes && <div className="mt-2 rounded-xl bg-primary-soft/40 p-2.5 text-primary text-xs font-medium flex items-center gap-1.5"><CheckCircle2 className="size-4" /> <strong>Approval Note:</strong> {b.organizerNotes}</div>}
                     {b.stage === "rejected" && (
                       <div className="mt-2 rounded-xl border border-red-200 bg-red-50 p-3 text-red-800 dark:border-red-950 dark:bg-red-950/40 dark:text-red-300">

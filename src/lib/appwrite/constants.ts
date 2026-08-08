@@ -9,6 +9,6 @@ export const APPWRITE_CONFIG = {
     notifications: import.meta.env.VITE_NOTIFICATIONS_COLLECTION_ID || 'notifications',
   },
   bucketId: import.meta.env.VITE_STORAGE_BUCKET_ID || '',
-  notificationFunctionId: import.meta.env.VITE_APPWRITE_NOTIFICATION_FUNCTION_ID || '',
+  notificationFunctionId: import.meta.env.VITE_APPWRITE_NOTIFICATION_FUNCTION_ID || '6a70cece000ca4f4f291',
 };
 

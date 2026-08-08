@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, FileText, UploadCloud } from "lucide-react";
+import { FileText, UploadCloud } from "lucide-react";
 import { useRef, useState, type DragEvent } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Button, PageTitle } from "@/components/ui-kit";
@@ -85,14 +85,6 @@ function UploadSigned() {
 
   return (
     <AppShell>
-      <Link
-        to="/bookings/$id"
-        params={{ id }}
-        className="mb-6 inline-flex items-center gap-1.5 text-[0.85rem] text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" /> Booking
-      </Link>
-
       <PageTitle title="Upload signed letter" subtitle="Attach the signed approval letter as a PDF." />
 
       <div

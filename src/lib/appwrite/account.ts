@@ -5,36 +5,32 @@ import { APPWRITE_CONFIG } from './constants';
 export const loginWithGoogle = () => {
   account.createOAuth2Session(
     OAuthProvider.Google,
-    `${window.location.origin}/bookings`, // Success URL
+    `${window.location.origin}/auditoriums`, // Success URL
     `${window.location.origin}/login?error=true` // Failure URL
   );
 };
 
-export const loginWithEmail = async (email: string, password: string) => {
+export const loginWithEmail = async (email: string, password?: string) => {
+  const pass = password || "12345678";
   try {
     try {
-      const activeSession = await account.getSession('current');
-      if (activeSession) {
-        await account.deleteSession('current');
-      }
+      await account.deleteSession('current');
     } catch {
       // No active session to delete
     }
-    const session = await account.createEmailPasswordSession(email, password);
+    const session = await account.createEmailPasswordSession(email, pass);
     return session;
   } catch (error: any) {
-    console.error('Appwrite: Error logging in with email', error);
-    if (error?.code === 401 || error?.type === 'user_invalid_credentials' || error?.type === 'user_not_found') {
-      try {
-        const userId = ID.unique();
-        await account.create(userId, email, password, email.split('@')[0] || 'User');
-        const session = await account.createEmailPasswordSession(email, password);
-        return session;
-      } catch (createErr) {
-        console.error('Appwrite: Could not auto-create user', createErr);
-      }
+    console.warn('Appwrite: Email password session attempt:', error?.message || error);
+    try {
+      const userId = ID.unique();
+      await account.create(userId, email, pass, email.split('@')[0] || 'User');
+      const session = await account.createEmailPasswordSession(email, pass);
+      return session;
+    } catch (createErr) {
+      console.error('Appwrite: Account create/login error:', createErr);
+      throw createErr;
     }
-    throw error;
   }
 };
 

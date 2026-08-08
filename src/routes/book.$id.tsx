@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, AlertCircle, Image as ImageIcon, UploadCloud, X, Calendar as CalendarIcon, Clock } from "lucide-react";
+import { AlertCircle, Image as ImageIcon, UploadCloud, X, Calendar as CalendarIcon, Clock } from "lucide-react";
 import { useEffect, useState, useMemo, type FormEvent } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Button, Field, PageTitle, TextField } from "@/components/ui-kit";
@@ -165,6 +165,10 @@ function BookingForm() {
       setError("Please enter expected participants.");
       return;
     }
+    if (!form.chairs || parseInt(form.chairs) < 1) {
+      setError("Please specify the number of chairs required on dais.");
+      return;
+    }
 
     const d = new Date(form.fromDate);
     const endD = new Date(form.toDate);
@@ -194,14 +198,6 @@ function BookingForm() {
 
   return (
     <AppShell>
-      <Link
-        to="/auditoriums/$id"
-        params={{ id: auditorium.id }}
-        className="mb-6 inline-flex items-center gap-1.5 text-[0.85rem] text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" /> {auditorium.name}
-      </Link>
-
       <PageTitle
         eyebrow="Step 2 of 4"
         title="Booking details"
@@ -290,16 +286,31 @@ function BookingForm() {
           </div>
         </div>
 
-        <Field
-          label="Expected Participants"
-          type="number"
-          min={1}
-          max={auditorium.capacity}
-          required
-          value={form.participants}
-          onChange={set("participants")}
-          placeholder={`Capacity: up to ${auditorium.capacity}`}
-        />
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field
+            label="Expected Participants"
+            type="number"
+            min={1}
+            max={auditorium.capacity}
+            required
+            value={form.participants}
+            onChange={set("participants")}
+            placeholder={`Capacity: up to ${auditorium.capacity}`}
+          />
+          <Field
+            label="Number of Chairs Required on Dais"
+            type="number"
+            min={1}
+            max={50}
+            required
+            value={form.chairs || form.daisChairs}
+            onChange={(val) => {
+              set("chairs")(val);
+              set("daisChairs")(val);
+            }}
+            placeholder="e.g. 5 chairs (Required)"
+          />
+        </div>
 
         <TextField
           label="Additional Remarks / AV Requirements (Optional)"

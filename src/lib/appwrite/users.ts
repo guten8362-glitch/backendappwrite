@@ -1,5 +1,5 @@
 import { ID, Query } from 'appwrite';
-import { databases } from './client';
+import { account, databases } from './client';
 import { APPWRITE_CONFIG } from './constants';
 import type { UserRole, User } from '../auth';
 
@@ -45,8 +45,24 @@ export const getAllUsersFromDatabase = async (): Promise<User[]> => {
       $id: doc.user_id || doc.userId || doc.auth_id || doc.$id
     }));
   } catch (error) {
-    console.error('Appwrite: Error fetching users', error);
-    return [];
+    console.warn('Appwrite: Error fetching users, attempting session recovery:', error);
+    try {
+      await account.createAnonymousSession();
+      const retryResponse = await databases.listDocuments(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.collections.users
+      );
+      return retryResponse.documents.map((doc: any) => ({
+        email: doc.mail_id || doc.email || '',
+        name: doc.name || '',
+        institution: doc.institution || 'MVIT',
+        role: doc.role || 'user',
+        $id: doc.user_id || doc.userId || doc.auth_id || doc.$id
+      }));
+    } catch (retryErr) {
+      console.error('Appwrite: Error fetching users after recovery:', retryErr);
+      return [];
+    }
   }
 };
 

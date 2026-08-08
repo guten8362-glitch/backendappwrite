@@ -16,7 +16,7 @@ export interface Auditorium {
 export const fetchAuditoriums = async (): Promise<Auditorium[]> => {
   try {
     const data = await listHalls();
-    console.log("DB Halls Data:", data);
+    console.log("DB Halls Data from Appwrite:", data);
     if (Array.isArray(data)) {
       return data.map((h: any) => {
         let rawImages = h.imagesURL || h.imageURL || h.image || h.images || [];
@@ -46,7 +46,7 @@ export const fetchAuditoriums = async (): Promise<Auditorium[]> => {
       });
     }
   } catch (err) {
-    console.error("fetchAuditoriums appwrite error:", err);
+    console.error("fetchAuditoriums Appwrite database error:", err);
   }
   return [];
 };

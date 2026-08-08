@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Download, FileCheck2, Trash2, AlertTriangle, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Download, FileCheck2, Trash2, AlertTriangle, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Timeline } from "@/components/Timeline";
 import { Button, Row, Surface } from "@/components/ui-kit";
@@ -69,13 +69,6 @@ export function BookingDetail() {
 
   return (
     <AppShell>
-      <Link
-        to="/bookings"
-        className="mb-6 inline-flex items-center gap-1.5 text-[0.85rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" /> My Bookings
-      </Link>
-
       <header className="fade-up mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -168,6 +161,7 @@ export function BookingDetail() {
           <Row label="Event Name" value={booking.eventName} />
           <Row label="Purpose" value={booking.purpose} />
           <Row label="Expected Attendees" value={booking.participants} />
+          <Row label="Chairs Required on Dais" value={`${(booking as any).chairs || booking.daisChairs || (booking as any).extra?.chairs || "5"} chairs`} />
           <Row label="Coordinator" value={booking.coordinator} />
           {booking.remarks && <Row label="Remarks" value={booking.remarks} />}
         </Surface>

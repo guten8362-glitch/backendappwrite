@@ -1,5 +1,5 @@
 import { ID, Query } from 'appwrite';
-import { databases } from './client';
+import { account, databases } from './client';
 import { APPWRITE_CONFIG } from './constants';
 
 export const listBookings = async () => {
@@ -7,12 +7,23 @@ export const listBookings = async () => {
     const response = await databases.listDocuments(
       APPWRITE_CONFIG.databaseId,
       APPWRITE_CONFIG.collections.bookings,
-      [Query.orderDesc('$createdAt')]
+      [Query.orderDesc('$createdAt'), Query.limit(500)]
     );
     return response.documents;
   } catch (error) {
-    console.error('Appwrite: Error fetching bookings', error);
-    throw error;
+    console.warn('Appwrite: First attempt fetching bookings failed, attempting session recovery:', error);
+    try {
+      await account.createAnonymousSession();
+      const retryResponse = await databases.listDocuments(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.collections.bookings,
+        [Query.orderDesc('$createdAt'), Query.limit(500)]
+      );
+      return retryResponse.documents;
+    } catch (retryError) {
+      console.error('Appwrite: Error fetching bookings after recovery:', retryError);
+      throw retryError;
+    }
   }
 };
 
@@ -49,6 +60,7 @@ const mapToBackend = (b: any) => {
     toDate: b.toDate,
     startTimeStr: b.startTime,
     endTimeStr: b.endTime,
+    daisChairs: b.daisChairs,
     organizerNotes: b.organizerNotes,
     facilitiesRequired: b.facilitiesRequired,
     rejectionCategory: b.rejectionCategory,
@@ -119,8 +131,18 @@ export const listHalls = async () => {
     );
     return response.documents;
   } catch (error) {
-    console.error('Appwrite: Error fetching halls', error);
-    throw error;
+    console.warn('Appwrite: First attempt fetching halls failed, attempting session recovery:', error);
+    try {
+      await account.createAnonymousSession();
+      const retryResponse = await databases.listDocuments(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.collections.halls
+      );
+      return retryResponse.documents;
+    } catch (retryError) {
+      console.error('Appwrite: Error fetching halls after recovery:', retryError);
+      throw retryError;
+    }
   }
 };
 
@@ -134,6 +156,43 @@ export const createNotification = async (data: { userId?: string, title: string,
       data
     );
   } catch (error) {
-    console.error('Appwrite: Error creating notification', error);
+    console.warn('Appwrite: Error creating notification, attempting session recovery:', error);
+    try {
+      await account.createAnonymousSession();
+      return await databases.createDocument(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.collections.notifications,
+        ID.unique(),
+        data
+      );
+    } catch (retryErr) {
+      console.error('Appwrite: Could not create notification document:', retryErr);
+    }
+  }
+};
+
+export const listNotifications = async () => {
+  if (!APPWRITE_CONFIG.collections.notifications) return [];
+  try {
+    const response = await databases.listDocuments(
+      APPWRITE_CONFIG.databaseId,
+      APPWRITE_CONFIG.collections.notifications,
+      [Query.orderDesc('$createdAt')]
+    );
+    return response.documents;
+  } catch (error) {
+    console.warn('Appwrite: Error fetching notifications, attempting session recovery:', error);
+    try {
+      await account.createAnonymousSession();
+      const retryResponse = await databases.listDocuments(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.collections.notifications,
+        [Query.orderDesc('$createdAt')]
+      );
+      return retryResponse.documents;
+    } catch (retryErr) {
+      console.error('Appwrite: Could not list notifications:', retryErr);
+      return [];
+    }
   }
 };

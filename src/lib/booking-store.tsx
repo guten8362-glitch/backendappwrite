@@ -3,7 +3,7 @@ import { listBookings, createBooking, updateBooking, deleteBooking, createNotifi
 import { subscribeToBookings } from "./appwrite/realtime";
 import { fetchAuditoriums } from "./auditoriums";
 import type { Auditorium } from "./auditoriums";
-import { getUserIdByEmail, sendPushNotification, sendEmailNotification } from "./appwrite/messaging";
+import { getUserIdByEmail, sendPushNotification, sendEmailNotification, sendBookingConfirmationEmail } from "./appwrite/messaging";
 import { getAllUsersFromDatabase } from "./appwrite/users";
 import { recordAuditLog } from "./services/audit";
 import { getStoredImpersonatedUser } from "./services/impersonation";
@@ -89,9 +89,17 @@ export const getInstitutionLogo = (inst: string) => {
 
 export const getApprovalWorkflow = (institution?: string) => {
   const principalTitle = "MVIT Principal";
+  const inst = (institution || "MVIT").toUpperCase().trim();
+  const isMVIT = !institution || inst.includes("MVIT") || inst.includes("MANAKULA VINAYAGAR INSTITUTE") || inst === "SIR MVIT";
+
+  if (isMVIT) {
+    return [
+      { key: "pending_super_admin", label: `${principalTitle} Approval`, approver: principalTitle },
+    ];
+  }
   
   return [
-    { key: "pending_coordinator", label: "Coordinator Approval", approver: "Coordinator" },
+    { key: "pending_coordinator", label: "College Coordinator Approval", approver: "College Coordinator" },
     { key: "pending_super_admin", label: `${principalTitle} Approval`, approver: principalTitle },
   ];
 };
@@ -138,6 +146,7 @@ export interface BookingDraft {
   startTime: string;
   endTime: string;
   participants: string;
+  daisChairs?: string;
   remarks: string;
   eventImage?: string;
   rejectionCategory?: string;
@@ -170,6 +179,7 @@ export const emptyDraft = (auditoriumId = ""): BookingDraft => ({
   startTime: "",
   endTime: "",
   participants: "",
+  daisChairs: "",
   remarks: "",
   eventImage: "",
   rejectionCategory: "",
@@ -325,22 +335,60 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       setDraft: setDraftState,
       bookings,
       ready,
-      auditoriums,
       getAuditorium: (id?: string) => {
         if (!id) return undefined;
-        return auditoriums.find(a => a.id === id || (a.name || "").toLowerCase().trim() === id.toLowerCase().trim());
+        const cleanId = id.trim().toLowerCase();
+        
+        // 1. Direct ID match or exact name match
+        let found = auditoriums.find(a => 
+          a.id === id || 
+          a.id.toLowerCase() === cleanId || 
+          (a.name || "").toLowerCase().trim() === cleanId
+        );
+        if (found) return found;
+
+        // 2. Partial / slug match for standard campus halls
+        if (cleanId.includes("av") || cleanId.includes("audio")) {
+          found = auditoriums.find(a => a.name.toLowerCase().includes("av") || a.name.toLowerCase().includes("audio"));
+          if (found) return found;
+          return { id: "av-room", name: "Audio Visual (AV) Room", capacity: 150, tagline: "Air-Conditioned • Audio Visual System", availability: "Available", image: ["/logos/logo4.jpg"], location: "Main Building, First Floor", facilities: ["Air Conditioner", "Projector"], about: "" };
+        }
+        if (cleanId.includes("conf") || cleanId.includes("central")) {
+          found = auditoriums.find(a => a.name.toLowerCase().includes("conf"));
+          if (found) return found;
+          return { id: "conference-hall", name: "Central Conference Hall", capacity: 250, tagline: "Executive Seating", availability: "Available", image: ["/logos/logo4.jpg"], location: "Administrative Block, Second Floor", facilities: ["Air Conditioner"], about: "" };
+        }
+        if (cleanId.includes("ground")) {
+          found = auditoriums.find(a => a.name.toLowerCase().includes("ground"));
+          if (found) return found;
+          return { id: "ground-floor-auditorium", name: "Ground Floor Auditorium", capacity: 500, tagline: "Large Capacity", availability: "Available", image: ["/logos/logo4.jpg"], location: "Main Building, Ground Floor", facilities: ["Stage Lighting"], about: "" };
+        }
+        if (cleanId.includes("back")) {
+          found = auditoriums.find(a => a.name.toLowerCase().includes("back"));
+          if (found) return found;
+          return { id: "backside-auditorium", name: "Backside Auditorium", capacity: 350, tagline: "Open Layout", availability: "Available", image: ["/logos/logo4.jpg"], location: "Campus Back Block", facilities: ["PA System"], about: "" };
+        }
+
+        // Fallback for custom readable names
+        if (!/^[a-f0-9]{20,24}$/i.test(id) && id.length > 2 && id !== "h") {
+          return { id, name: id, capacity: 0, tagline: "", availability: "Available", image: ["/logos/logo4.jpg"], location: "Campus Venue", facilities: [], about: "" };
+        }
+
+        return { id, name: "Campus Auditorium", capacity: 0, tagline: "", availability: "Available", image: ["/logos/logo4.jpg"], location: "Campus Venue", facilities: [], about: "" };
       },
       submitDraft: async (userRole?: string, userTeam?: string, explicitData?: BookingDraft, userId?: string) => {
         const data = explicitData || draft;
         const initialStage = getInitialStage(userRole, userTeam, data.institution);
 
         let activeUserId = userId;
-        if (!activeUserId && typeof window !== "undefined") {
+        let activeUserEmail = "";
+        if (typeof window !== "undefined") {
           try {
             const rawUser = localStorage.getItem("bms_user");
             if (rawUser) {
               const parsed = JSON.parse(rawUser);
-              activeUserId = parsed.$id || parsed.id;
+              activeUserId = activeUserId || parsed.$id || parsed.id;
+              activeUserEmail = parsed.email || "";
             }
           } catch {}
         }
@@ -349,6 +397,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
           ...data,
           stage: initialStage,
           requesterId: activeUserId,
+          requesterEmail: activeUserEmail,
         };
         
         try {
@@ -448,6 +497,19 @@ export function BookingProvider({ children }: { children: ReactNode }) {
               `✅ Booking Approved: ${b.eventName || 'Booking'}`, 
               `Hello ${applicantName},\n\nYour auditorium booking has been APPROVED by ${approver}.\n\n${details}`
             );
+          }
+
+          // Trigger Resend Confirmation Email (Non-blocking)
+          const targetEmail = (b as any)?.requesterEmail || (b as any)?.mail_id || (b as any)?.email;
+          if (targetEmail) {
+            sendBookingConfirmationEmail({
+              userEmail: targetEmail,
+              userName: applicantName,
+              bookingId: id,
+              auditoriumName: audName,
+              date: b?.date || 'N/A',
+              time: `${b?.startTime || ''} - ${b?.endTime || ''}`,
+            }).catch((emailErr) => console.error("Email sending failed", emailErr));
           }
           if (b?.institution !== 'MVIT') {
             notifyRole('coordinator', `✅ Confirmed: ${b?.eventName || 'Booking'}`, `The external booking for ${applicantName} has been finalized by the Principal.\n${details}`, b.institution);

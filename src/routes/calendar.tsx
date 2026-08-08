@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, CalendarDays } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { PageTitle, Surface } from "@/components/ui-kit";
@@ -12,6 +12,8 @@ const MONTHS = [
 ];
 
 const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
+
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/calendar")({
   head: () => ({
@@ -29,12 +31,40 @@ export const Route = createFileRoute("/calendar")({
     ],
   }),
   component: CalendarPage,
-});function CalendarPage() {
+});
+
+function CalendarPage() {
   const { bookings, ready, getAuditorium } = useBookings();
+  const { user } = useAuth();
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  const isMVITUser = () => {
+    if (!user) return true;
+    if (user.role === "admin" || user.role === "super_admin") return true;
+    const inst = (user.institution || "").toUpperCase();
+    return inst.includes("MVIT") || inst.includes("MANAKULA VINAYAGAR INSTITUTE");
+  };
+
+  const mvitFlag = isMVITUser();
+
+  const visibleBookings = bookings.filter((b) => {
+    if (mvitFlag) return true;
+    
+    // External users & External Coordinators see ONLY backside auditorium bookings
+    const aud = getAuditorium(b.auditoriumId);
+    const audName = (aud?.name || (b as any).auditoriumName || (b as any).hallName || "").toLowerCase();
+    const audId = (aud?.id || b.auditoriumId || (b as any).hallId || "").toLowerCase();
+
+    return (
+      audId.includes("back") || 
+      audId.includes("backside") || 
+      audName.includes("back") || 
+      audName.includes("backside")
+    );
+  });
 
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
@@ -63,7 +93,7 @@ export const Route = createFileRoute("/calendar")({
   };
 
   const selectedBookings = selectedDate
-    ? bookings.filter((b) => isDateInRange(b, selectedDate))
+    ? visibleBookings.filter((b) => isDateInRange(b, selectedDate))
     : [];
 
   const prevMonth = () => {
@@ -150,7 +180,7 @@ export const Route = createFileRoute("/calendar")({
             }
 
             const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-            const dayBookings = bookings.filter((b) => isDateInRange(b, dateStr));
+            const dayBookings = visibleBookings.filter((b) => isDateInRange(b, dateStr));
             const selected = isSelected(day);
             const todayFlag = isToday(day);
 
@@ -272,11 +302,18 @@ export const Route = createFileRoute("/calendar")({
                 >
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div>
-                      <span className="text-[0.72rem] font-extrabold uppercase tracking-wide text-primary">
-                        {aud?.name || "Auditorium"}
-                      </span>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">
+                          Auditorium:
+                        </span>
+                        <span className="text-[0.88rem] font-extrabold text-primary">
+                          {aud?.name || "Backside Auditorium"}
+                        </span>
+                      </div>
                       <h4 className="text-[1.05rem] font-bold text-foreground leading-snug">
-                        {b.eventName || `Booked by ${b.coordinator}`}
+                        {(!b.eventName || b.eventName === "h" || b.eventName.trim().length <= 1) 
+                          ? `Booked by ${b.coordinator || "User"}` 
+                          : b.eventName}
                       </h4>
                     </div>
                     <span

@@ -8,7 +8,7 @@ import { requestFCMToken } from "@/lib/firebase";
 import { updateUserFCMToken } from "@/lib/appwrite/users";
 import { account } from "@/lib/appwrite/client";
 import { ID } from "appwrite";
-import { Mail, Sparkles, Eye, EyeOff } from "lucide-react";
+import { Mail, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/login")({
@@ -96,8 +96,6 @@ function LoginPage() {
   const navigate = useNavigate();
   
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -159,7 +157,7 @@ function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const success = await login(email, password);
+      const success = await login(email);
       if (success) {
         sessionStorage.setItem("justLoggedIn", "true");
         // Read updated user from localStorage to get the exact role
@@ -175,11 +173,11 @@ function LoginPage() {
 
         navigate({ to: targetPath, replace: true });
       } else {
-        setError("Invalid email or password");
+        setError("User not found");
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Authentication failed");
+      setError(err.message || "User not found");
     } finally {
       setLoading(false);
     }
@@ -292,54 +290,13 @@ function LoginPage() {
         />
 
         <Surface className="p-4 sm:p-5 backdrop-blur-2xl bg-card/95 shadow-2xl border-white/40 dark:border-white/10">
-          <form onSubmit={submitEmail} className="space-y-2">
-            <div>
-              <label className="mb-1 block text-[0.78rem] font-medium text-muted-foreground">Email address</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                
-                className="h-10.5 w-full rounded-xl border border-border bg-card px-3.5 text-[0.9rem] outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-[0.78rem] font-medium text-muted-foreground">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="h-10.5 w-full rounded-xl border border-border bg-card px-3.5 pr-10 text-[0.9rem] outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-            <Button type="submit" disabled={loading} className="w-full h-11 text-[0.9rem] font-semibold">
-              {loading ? "Signing in..." : "Sign in"}
-            </Button>
-          </form>
-
-          <div className="my-3 flex items-center gap-4 text-xs font-semibold uppercase text-muted-foreground before:h-px before:flex-1 before:bg-border/60 after:h-px after:flex-1 after:bg-border/60">
-            or
-          </div>
-
           <button
             type="button"
             onClick={submitGoogle}
             disabled={loading}
-            className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-card px-4 py-2.5 text-[0.9rem] font-medium transition-all hover:bg-muted/50 hover:border-primary/40 hover:shadow-md active:scale-[0.99] disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-[0.95rem] font-semibold transition-all hover:bg-muted/50 hover:border-primary/40 hover:shadow-md active:scale-[0.99] disabled:opacity-50"
           >
-            <svg viewBox="0 0 24 24" className="h-4.5 w-4.5">
+            <svg viewBox="0 0 24 24" className="h-5 w-5">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
