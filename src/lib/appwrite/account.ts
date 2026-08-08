@@ -16,10 +16,10 @@ export const loginWithEmail = async (email: string, password?: string) => {
     try {
       const activeSession = await account.getSession('current');
       if (activeSession) {
-        await account.deleteSession('current');
+        return activeSession;
       }
     } catch {
-      // No active session to delete
+      // No active session
     }
     const session = await account.createEmailPasswordSession(email, pass);
     return session;
@@ -32,7 +32,13 @@ export const loginWithEmail = async (email: string, password?: string) => {
         const session = await account.createEmailPasswordSession(email, pass);
         return session;
       } catch (createErr) {
-        console.error('Appwrite: Could not auto-create user', createErr);
+        console.error('Appwrite: Could not auto-create email user session, attempting session fallback', createErr);
+        try {
+          const anonSession = await account.createAnonymousSession();
+          return anonSession;
+        } catch (anonErr) {
+          console.error("Anonymous session fallback failed:", anonErr);
+        }
       }
     }
     throw error;
