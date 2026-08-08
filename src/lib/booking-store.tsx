@@ -337,12 +337,14 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         const initialStage = getInitialStage(userRole, userTeam, data.institution);
 
         let activeUserId = userId;
-        if (!activeUserId && typeof window !== "undefined") {
+        let activeUserEmail = "";
+        if (typeof window !== "undefined") {
           try {
             const rawUser = localStorage.getItem("bms_user");
             if (rawUser) {
               const parsed = JSON.parse(rawUser);
-              activeUserId = parsed.$id || parsed.id;
+              activeUserId = activeUserId || parsed.$id || parsed.id;
+              activeUserEmail = parsed.email || "";
             }
           } catch {}
         }
@@ -351,6 +353,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
           ...data,
           stage: initialStage,
           requesterId: activeUserId,
+          requesterEmail: activeUserEmail,
         };
         
         try {

@@ -5,7 +5,7 @@ import { APPWRITE_CONFIG } from './constants';
 export const loginWithGoogle = () => {
   account.createOAuth2Session(
     OAuthProvider.Google,
-    `${window.location.origin}/bookings`, // Success URL
+    `${window.location.origin}/auditoriums`, // Success URL
     `${window.location.origin}/login?error=true` // Failure URL
   );
 };
