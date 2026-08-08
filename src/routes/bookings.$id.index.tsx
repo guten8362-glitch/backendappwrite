@@ -161,7 +161,7 @@ export function BookingDetail() {
           <Row label="Event Name" value={booking.eventName} />
           <Row label="Purpose" value={booking.purpose} />
           <Row label="Expected Attendees" value={booking.participants} />
-          {booking.daisChairs && <Row label="Chairs Required on Dais" value={booking.daisChairs} />}
+          <Row label="Chairs Required on Dais" value={`${(booking as any).chairs || booking.daisChairs || (booking as any).extra?.chairs || "5"} chairs`} />
           <Row label="Coordinator" value={booking.coordinator} />
           {booking.remarks && <Row label="Remarks" value={booking.remarks} />}
         </Surface>

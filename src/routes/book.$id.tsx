@@ -165,6 +165,10 @@ function BookingForm() {
       setError("Please enter expected participants.");
       return;
     }
+    if (!form.chairs || parseInt(form.chairs) < 1) {
+      setError("Please specify the number of chairs required on dais.");
+      return;
+    }
 
     const d = new Date(form.fromDate);
     const endD = new Date(form.toDate);
@@ -296,11 +300,15 @@ function BookingForm() {
           <Field
             label="Number of Chairs Required on Dais"
             type="number"
-            min={0}
+            min={1}
             max={50}
-            value={form.daisChairs}
-            onChange={set("daisChairs")}
-            placeholder="e.g. 5"
+            required
+            value={form.chairs || form.daisChairs}
+            onChange={(val) => {
+              set("chairs")(val);
+              set("daisChairs")(val);
+            }}
+            placeholder="e.g. 5 chairs (Required)"
           />
         </div>
 

@@ -500,6 +500,10 @@ function Admin() {
                   <span className="text-muted-foreground">Coordinator / Audience:</span>
                   <span className="font-medium text-foreground">{b.coordinator} ({b.participants} attendees)</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Chairs Required on Dais:</span>
+                  <span className="font-bold text-primary">{(b as any).chairs || (b as any).daisChairs || (b as any).extra?.chairs || "5"} chairs</span>
+                </div>
                 {b.organizerNotes && (
                   <div className="mt-2 rounded-xl border border-primary/20 bg-primary-soft/40 p-3 text-[0.82rem] font-medium text-primary shadow-xs">
                     <span className="flex items-center gap-1.5 font-bold"><CheckCircle2 className="size-4" /> Coordinator Approval Note:</span>

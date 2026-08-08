@@ -7,12 +7,23 @@ export const listBookings = async () => {
     const response = await databases.listDocuments(
       APPWRITE_CONFIG.databaseId,
       APPWRITE_CONFIG.collections.bookings,
-      [Query.orderDesc('$createdAt')]
+      [Query.orderDesc('$createdAt'), Query.limit(500)]
     );
     return response.documents;
   } catch (error) {
-    console.error('Appwrite: Error fetching bookings', error);
-    throw error;
+    console.warn('Appwrite: First attempt fetching bookings failed, attempting session recovery:', error);
+    try {
+      await account.createAnonymousSession();
+      const retryResponse = await databases.listDocuments(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.collections.bookings,
+        [Query.orderDesc('$createdAt'), Query.limit(500)]
+      );
+      return retryResponse.documents;
+    } catch (retryError) {
+      console.error('Appwrite: Error fetching bookings after recovery:', retryError);
+      throw retryError;
+    }
   }
 };
 
