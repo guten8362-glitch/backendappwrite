@@ -89,7 +89,17 @@ export const syncPushTarget = async (token: string, oldToken?: string) => {
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [realUser, setRealUser] = useState<User | null>(null);
+  const [realUser, setRealUser] = useState<User | null>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("bms_user");
+        if (saved) return JSON.parse(saved);
+      }
+    } catch {
+      /* ignore */
+    }
+    return null;
+  });
   const [impersonatedUser, setImpersonatedUser] = useState<User | null>(() => getStoredImpersonatedUser());
   const [ready, setReady] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -97,7 +107,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const currentUser = await getCurrentUser();
+        let currentUser = await getCurrentUser();
+
+        if (!currentUser) {
+          try {
+            const saved = localStorage.getItem("bms_user");
+            if (saved) {
+              currentUser = JSON.parse(saved);
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+
         if (currentUser) {
           setRealUser(currentUser as User);
           localStorage.setItem("bms_user", JSON.stringify(currentUser));
@@ -128,11 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem("fcm_registered");
         }
       } catch (error) {
-        setRealUser(null);
-        setImpersonatedUser(null);
-        setStoredImpersonatedUser(null);
-        localStorage.removeItem("bms_user");
-        localStorage.removeItem("fcm_registered");
+        console.error("Session check error:", error);
       } finally {
         setReady(true);
       }
