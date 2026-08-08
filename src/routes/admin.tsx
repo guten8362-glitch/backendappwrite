@@ -454,6 +454,7 @@ function Admin() {
         {filteredBookings.map((b, i) => {
           const stageInfo = getStageInfo(b.stage);
           const hall = getAuditorium(b.auditoriumId);
+          const hallDisplayName = hall?.name || (b as any).hallName || (b as any).auditoriumName || "Campus Auditorium";
 
           return (
             <Surface key={b.id} delay={i * 60} className="p-6 sm:p-7">
@@ -461,7 +462,7 @@ function Admin() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-[1.15rem] font-semibold text-foreground">
-                      {hall?.name || (b.auditoriumId !== "undefined" && b.auditoriumId ? b.auditoriumId : "Venue Not Selected")}
+                      {hallDisplayName}
                     </h2>
                   </div>
                   <div className="mt-1.5 flex items-center gap-3 text-[0.88rem] text-muted-foreground font-medium">

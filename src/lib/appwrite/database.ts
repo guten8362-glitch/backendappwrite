@@ -145,6 +145,43 @@ export const createNotification = async (data: { userId?: string, title: string,
       data
     );
   } catch (error) {
-    console.error('Appwrite: Error creating notification', error);
+    console.warn('Appwrite: Error creating notification, attempting session recovery:', error);
+    try {
+      await account.createAnonymousSession();
+      return await databases.createDocument(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.collections.notifications,
+        ID.unique(),
+        data
+      );
+    } catch (retryErr) {
+      console.error('Appwrite: Could not create notification document:', retryErr);
+    }
+  }
+};
+
+export const listNotifications = async () => {
+  if (!APPWRITE_CONFIG.collections.notifications) return [];
+  try {
+    const response = await databases.listDocuments(
+      APPWRITE_CONFIG.databaseId,
+      APPWRITE_CONFIG.collections.notifications,
+      [Query.orderDesc('$createdAt')]
+    );
+    return response.documents;
+  } catch (error) {
+    console.warn('Appwrite: Error fetching notifications, attempting session recovery:', error);
+    try {
+      await account.createAnonymousSession();
+      const retryResponse = await databases.listDocuments(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.collections.notifications,
+        [Query.orderDesc('$createdAt')]
+      );
+      return retryResponse.documents;
+    } catch (retryErr) {
+      console.error('Appwrite: Could not list notifications:', retryErr);
+      return [];
+    }
   }
 };

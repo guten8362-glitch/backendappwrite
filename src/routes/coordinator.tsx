@@ -406,12 +406,13 @@ export function CoordinatorPortal() {
             displayedBookings.map((b, i) => {
               const stageInfo = getStageInfo(b.stage);
               const hall = getAuditorium(b.auditoriumId);
+              const hallDisplayName = hall?.name || (b as any).hallName || (b as any).auditoriumName || "Campus Auditorium";
               return (
                 <Surface key={b.id} delay={i * 50} className="p-6 sm:p-7">
                   <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-bold text-foreground">{hall?.name || b.auditoriumId || "Auditorium"}</h2>
+                        <h2 className="text-lg font-bold text-foreground">{hallDisplayName}</h2>
                       </div>
                       <div className="mt-1.5 flex items-center gap-3 text-xs font-semibold text-muted-foreground">
                         <span className="flex items-center gap-1.5"><CalendarDays className="size-3.5 text-primary" /> {formatDate(b.fromDate || b.date, b.toDate)}</span>
