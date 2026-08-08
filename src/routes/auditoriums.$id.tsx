@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Check, MapPin, Users } from "lucide-react";
+import { Check, MapPin, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Button, Surface } from "@/components/ui-kit";
@@ -94,13 +94,6 @@ function Details() {
 
   return (
     <AppShell>
-      <Link
-        to="/auditoriums"
-        className="mb-6 inline-flex items-center gap-1.5 text-[0.85rem] text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" /> All auditoriums
-      </Link>
-
       <div className="rise mb-8 h-64 overflow-hidden rounded-3xl bg-muted sm:h-96">
         {auditorium.image && (Array.isArray(auditorium.image) ? auditorium.image.length > 0 : true) && (
           <ImageCarousel

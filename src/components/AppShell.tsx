@@ -80,31 +80,32 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* 4-Second Post-Login Blurred Background Splash Popup */}
       {showUserUI && pathname !== "/login" && <WelcomeSplashModal />}
 
-      {/* Top Header Bar with Top Right Back Navigation */}
+      {/* Top Header Bar with Top Left Back Navigation */}
       {showUserUI && pathname !== "/login" && (
         <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-md print:hidden">
           <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3">
-            <div className="flex items-center gap-2.5">
-              <img
-                src="/logos/logo4.jpg"
-                alt="MVIT Logo"
-                className="h-8 w-8 rounded-lg object-contain border border-border/60 shadow-2xs"
-              />
-              <span className="text-[0.88rem] font-bold text-foreground tracking-tight hidden sm:inline">
-                Central Hall Booking
-              </span>
-            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => window.history.back()}
+                className="press group inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-1.5 text-[0.82rem] font-semibold text-foreground shadow-xs transition-all hover:bg-muted hover:border-primary/40 hover:shadow-sm"
+                title="Go back to previous page"
+              >
+                <ArrowLeft className="h-4 w-4 text-primary transition-transform group-hover:-translate-x-1" />
+                <span>Back</span>
+              </button>
 
-            {/* Top Right Back Navigation Button */}
-            <button
-              type="button"
-              onClick={() => window.history.back()}
-              className="press group inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-1.5 text-[0.82rem] font-semibold text-foreground shadow-xs transition-all hover:bg-muted hover:border-primary/40 hover:shadow-sm"
-              title="Go back to previous page"
-            >
-              <ArrowLeft className="h-4 w-4 text-primary transition-transform group-hover:-translate-x-1" />
-              <span>Back</span>
-            </button>
+              <div className="flex items-center gap-2.5">
+                <img
+                  src="/logos/logo4.jpg"
+                  alt="MVIT Logo"
+                  className="h-8 w-8 rounded-lg object-contain border border-border/60 shadow-2xs"
+                />
+                <span className="text-[0.88rem] font-bold text-foreground tracking-tight hidden sm:inline">
+                  Central Hall Booking
+                </span>
+              </div>
+            </div>
           </div>
         </header>
       )}

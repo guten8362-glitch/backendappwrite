@@ -71,7 +71,7 @@ export const ConfirmationLetter = forwardRef<HTMLDivElement, Props>(
           <div className="flex">
             <div className="w-64 font-medium">No. of VIP chair required on stage</div>
             <div className="w-4">:</div>
-            <div className="flex-1 font-semibold">—</div>
+            <div className="flex-1 font-semibold">{booking.daisChairs || "—"}</div>
           </div>
           <div className="flex">
             <div className="w-64 font-medium">PA system</div>

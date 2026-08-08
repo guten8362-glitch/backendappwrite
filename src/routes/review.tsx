@@ -68,6 +68,7 @@ export function Review() {
           value={draft.startTime ? `${draft.startTime} – ${draft.endTime}` : "—"}
         />
         <Row label="Expected Attendees" value={draft.participants} />
+        {draft.daisChairs && <Row label="Chairs Required on Dais" value={draft.daisChairs} />}
         {draft.remarks && <Row label="Remarks" value={draft.remarks} />}
       </Surface>
 

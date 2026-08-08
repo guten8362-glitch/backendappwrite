@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, AlertCircle, Image as ImageIcon, UploadCloud, X, Calendar as CalendarIcon, Clock } from "lucide-react";
+import { AlertCircle, Image as ImageIcon, UploadCloud, X, Calendar as CalendarIcon, Clock } from "lucide-react";
 import { useEffect, useState, useMemo, type FormEvent } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Button, Field, PageTitle, TextField } from "@/components/ui-kit";
@@ -194,14 +194,6 @@ function BookingForm() {
 
   return (
     <AppShell>
-      <Link
-        to="/auditoriums/$id"
-        params={{ id: auditorium.id }}
-        className="mb-6 inline-flex items-center gap-1.5 text-[0.85rem] text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" /> {auditorium.name}
-      </Link>
-
       <PageTitle
         eyebrow="Step 2 of 4"
         title="Booking details"
@@ -290,16 +282,27 @@ function BookingForm() {
           </div>
         </div>
 
-        <Field
-          label="Expected Participants"
-          type="number"
-          min={1}
-          max={auditorium.capacity}
-          required
-          value={form.participants}
-          onChange={set("participants")}
-          placeholder={`Capacity: up to ${auditorium.capacity}`}
-        />
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field
+            label="Expected Participants"
+            type="number"
+            min={1}
+            max={auditorium.capacity}
+            required
+            value={form.participants}
+            onChange={set("participants")}
+            placeholder={`Capacity: up to ${auditorium.capacity}`}
+          />
+          <Field
+            label="Number of Chairs Required on Dais"
+            type="number"
+            min={0}
+            max={50}
+            value={form.daisChairs}
+            onChange={set("daisChairs")}
+            placeholder="e.g. 5"
+          />
+        </div>
 
         <TextField
           label="Additional Remarks / AV Requirements (Optional)"

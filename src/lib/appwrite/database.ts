@@ -49,6 +49,7 @@ const mapToBackend = (b: any) => {
     toDate: b.toDate,
     startTimeStr: b.startTime,
     endTimeStr: b.endTime,
+    daisChairs: b.daisChairs,
     organizerNotes: b.organizerNotes,
     facilitiesRequired: b.facilitiesRequired,
     rejectionCategory: b.rejectionCategory,

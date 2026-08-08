@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, CalendarDays } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { PageTitle, Surface } from "@/components/ui-kit";

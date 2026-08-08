@@ -3,7 +3,7 @@ import { listBookings, createBooking, updateBooking, deleteBooking, createNotifi
 import { subscribeToBookings } from "./appwrite/realtime";
 import { fetchAuditoriums } from "./auditoriums";
 import type { Auditorium } from "./auditoriums";
-import { getUserIdByEmail, sendPushNotification, sendEmailNotification } from "./appwrite/messaging";
+import { getUserIdByEmail, sendPushNotification, sendEmailNotification, sendBookingConfirmationEmail } from "./appwrite/messaging";
 import { getAllUsersFromDatabase } from "./appwrite/users";
 import { recordAuditLog } from "./services/audit";
 import { getStoredImpersonatedUser } from "./services/impersonation";
@@ -138,6 +138,7 @@ export interface BookingDraft {
   startTime: string;
   endTime: string;
   participants: string;
+  daisChairs?: string;
   remarks: string;
   eventImage?: string;
   rejectionCategory?: string;
@@ -170,6 +171,7 @@ export const emptyDraft = (auditoriumId = ""): BookingDraft => ({
   startTime: "",
   endTime: "",
   participants: "",
+  daisChairs: "",
   remarks: "",
   eventImage: "",
   rejectionCategory: "",
@@ -448,6 +450,19 @@ export function BookingProvider({ children }: { children: ReactNode }) {
               `✅ Booking Approved: ${b.eventName || 'Booking'}`, 
               `Hello ${applicantName},\n\nYour auditorium booking has been APPROVED by ${approver}.\n\n${details}`
             );
+          }
+
+          // Trigger Resend Confirmation Email (Non-blocking)
+          const targetEmail = (b as any)?.requesterEmail || (b as any)?.mail_id || (b as any)?.email;
+          if (targetEmail) {
+            sendBookingConfirmationEmail({
+              userEmail: targetEmail,
+              userName: applicantName,
+              bookingId: id,
+              auditoriumName: audName,
+              date: b?.date || 'N/A',
+              time: `${b?.startTime || ''} - ${b?.endTime || ''}`,
+            }).catch((emailErr) => console.error("Email sending failed", emailErr));
           }
           if (b?.institution !== 'MVIT') {
             notifyRole('coordinator', `✅ Confirmed: ${b?.eventName || 'Booking'}`, `The external booking for ${applicantName} has been finalized by the Principal.\n${details}`, b.institution);
