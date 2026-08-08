@@ -123,6 +123,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [activeIdx]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    const target = e.target as HTMLElement | null;
+    if (target && target.closest('button, a, input, select, textarea, [role="tablist"], [data-no-swipe="true"], .overflow-x-auto, .hide-scrollbar')) {
+      setTouchStart(null);
+      return;
+    }
     const touch = e.touches[0];
     setTouchStart({ x: touch.clientX, y: touch.clientY, time: Date.now() });
     setTouchDeltaX(0);

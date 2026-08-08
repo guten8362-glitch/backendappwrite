@@ -302,11 +302,18 @@ function CalendarPage() {
                 >
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div>
-                      <span className="text-[0.72rem] font-extrabold uppercase tracking-wide text-primary">
-                        {aud?.name || "Auditorium"}
-                      </span>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">
+                          Auditorium:
+                        </span>
+                        <span className="text-[0.88rem] font-extrabold text-primary">
+                          {aud?.name || "Backside Auditorium"}
+                        </span>
+                      </div>
                       <h4 className="text-[1.05rem] font-bold text-foreground leading-snug">
-                        {b.eventName || `Booked by ${b.coordinator}`}
+                        {(!b.eventName || b.eventName === "h" || b.eventName.trim().length <= 1) 
+                          ? `Booked by ${b.coordinator || "User"}` 
+                          : b.eventName}
                       </h4>
                     </div>
                     <span

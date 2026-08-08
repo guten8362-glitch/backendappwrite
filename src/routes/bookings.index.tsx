@@ -107,7 +107,7 @@ export function MyBookings() {
       <PageTitle title="My Bookings" subtitle="Follow each request through every stage." />
 
       {ready && userBookings.length > 0 && (
-        <div className="mb-4 sm:mb-6 flex overflow-x-auto whitespace-nowrap hide-scrollbar gap-2 rounded-2xl bg-muted/60 p-1.5 backdrop-blur border border-border/40">
+        <div data-no-swipe="true" className="mb-4 sm:mb-6 flex overflow-x-auto whitespace-nowrap hide-scrollbar gap-2 rounded-2xl bg-muted/60 p-1.5 backdrop-blur border border-border/40">
           <button
             onClick={() => setTab("open")}
             className={cn(
