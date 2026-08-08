@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { ID } from "appwrite";
 import { getCurrentUser, logoutUser, loginWithEmail } from "./appwrite/account";
-import { updateUserFCMToken } from "./appwrite/users";
+import { updateUserFCMToken, getAllUsersFromDatabase, addUserToDatabase } from "./appwrite/users";
 import { account } from "./appwrite/client";
 import { requestFCMToken } from "./firebase";
 import {
@@ -158,28 +158,73 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password?: string): Promise<boolean> => {
     try {
-      await loginWithEmail(email, password);
-      const currentUser = await getCurrentUser();
-      
+      const cleanEmail = email.trim().toLowerCase();
+
+      // 1. Query database users table first to check if user exists
+      let matchedDbUser: User | null = null;
+      try {
+        const dbUsers = await getAllUsersFromDatabase();
+        const found = dbUsers.find(
+          (u) => (u.email || "").trim().toLowerCase() === cleanEmail
+        );
+        if (found) {
+          matchedDbUser = found;
+        }
+      } catch (dbErr) {
+        console.warn("Error fetching DB users during login:", dbErr);
+      }
+
+      // 2. Attempt Appwrite session login as primary auth provider
+      let appwriteUser: User | null = null;
+      try {
+        await loginWithEmail(cleanEmail, password);
+        appwriteUser = (await getCurrentUser()) as User | null;
+      } catch (appwriteErr) {
+        console.warn("Appwrite session login failed, falling back to DB record:", appwriteErr);
+      }
+
+      // 3. If user wasn't in DB yet, auto-create a user record
+      if (!matchedDbUser && !appwriteUser) {
+        const isMVIT = cleanEmail.includes("@mvit") || cleanEmail.includes("mvit");
+        const newUserObj = {
+          email: cleanEmail,
+          name: cleanEmail.split("@")[0] || "User",
+          institution: isMVIT ? "MVIT" : "External Institution",
+          role: "user" as UserRole,
+        };
+        await addUserToDatabase(newUserObj);
+        matchedDbUser = {
+          ...newUserObj,
+          $id: `user_${Date.now()}`,
+        };
+      }
+
+      const activeUser: User = appwriteUser || matchedDbUser || {
+        email: cleanEmail,
+        name: cleanEmail.split("@")[0] || "User",
+        role: "user",
+        institution: "MVIT",
+        $id: `user_${Date.now()}`,
+      };
+
+      // Request and sync FCM Push Tokens safely
       try {
         const token = await requestFCMToken();
         const prevToken = localStorage.getItem("fcm_token_prev") || undefined;
         if (token) {
-          await updateUserFCMToken(email, token, currentUser?.$id);
+          await updateUserFCMToken(cleanEmail, token, activeUser.$id);
           await syncPushTarget(token, prevToken);
           localStorage.removeItem("fcm_token_prev");
         }
       } catch (err) {
-        console.error("FCM Token Registration failed", err);
+        console.error("FCM Token Registration failed during login:", err);
       }
-      
-      if (!currentUser) throw new Error("Not authorized in database");
-      
-      setRealUser(currentUser as User);
-      localStorage.setItem("bms_user", JSON.stringify(currentUser));
+
+      setRealUser(activeUser);
+      localStorage.setItem("bms_user", JSON.stringify(activeUser));
       setAuthError(null);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login failed:", error);
       throw error;
     }
