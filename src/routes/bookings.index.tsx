@@ -71,11 +71,21 @@ export function MyBookings() {
     const uEmail = (user.email || "").toLowerCase().trim();
     const uId = user.$id;
 
-    const bApplicantEmail = (b.applicantEmail || b.email || (b as any).targetUserEmail || "").toLowerCase().trim();
-    const bUserId = b.userId || (b as any).$id;
+    const bApplicantEmail = (
+      b.applicantEmail || 
+      b.email || 
+      (b as any).requesterEmail || 
+      (b as any).targetUserEmail || 
+      (b as any).mail_id || 
+      ""
+    ).toLowerCase().trim();
+
+    const bUserId = b.userId || (b as any).requesterId || (b as any).$id;
 
     if (uEmail && bApplicantEmail === uEmail) return true;
     if (uId && bUserId === uId) return true;
+    if (user.name && b.coordinator && b.coordinator.toLowerCase().trim() === user.name.toLowerCase().trim()) return true;
+
     return false;
   });
 

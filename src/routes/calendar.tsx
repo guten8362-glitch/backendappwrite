@@ -53,11 +53,17 @@ function CalendarPage() {
   const visibleBookings = bookings.filter((b) => {
     if (mvitFlag) return true;
     
-    // External users see ONLY backside auditorium bookings
-    const hallId = (b.auditoriumId || b.hallId || "").toLowerCase();
-    const hallName = (b.auditoriumName || b.hallName || "").toLowerCase();
+    // External users & External Coordinators see ONLY backside auditorium bookings
+    const aud = getAuditorium(b.auditoriumId);
+    const audName = (aud?.name || (b as any).auditoriumName || (b as any).hallName || "").toLowerCase();
+    const audId = (aud?.id || b.auditoriumId || (b as any).hallId || "").toLowerCase();
 
-    return hallId.includes("back") || hallId.includes("backside") || hallName.includes("backside");
+    return (
+      audId.includes("back") || 
+      audId.includes("backside") || 
+      audName.includes("back") || 
+      audName.includes("backside")
+    );
   });
 
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
