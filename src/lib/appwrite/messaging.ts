@@ -41,8 +41,60 @@ const sendAppwriteMessagingRequest = async (endpoint: string, payload: any) => {
 // Removed resolveAuthUserIdsByEmailOrId as it incorrectly mapped emails to DB document IDs.
 // The Serverless Function correctly maps emails to Auth User IDs natively.
 export const filterUsersWithTargets = async (userIds: string[]): Promise<string[]> => {
-  // Bypass buggy frontend validation and let the Serverless Function handle target resolution securely.
-  return userIds.filter(Boolean);
+  const apiKey = import.meta.env.VITE_APPWRITE_API_KEY || '';
+  if (!apiKey || !userIds || userIds.length === 0) return userIds;
+
+  const validIds = new Set<string>();
+
+  for (const id of userIds) {
+    if (!id) continue;
+    
+    // Resolve email to Auth ID
+    if (id.includes('@')) {
+      try {
+        const query = encodeURIComponent(id);
+        const userRes = await fetch(`${APPWRITE_CONFIG.endpoint}/users?search=${query}`, {
+          headers: {
+            'X-Appwrite-Project': APPWRITE_CONFIG.projectId,
+            'X-Appwrite-Key': apiKey,
+          },
+        });
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          if (userData.users && userData.users.length > 0) {
+            const exactUser = userData.users.find((u: any) => u.email === id);
+            if (exactUser) {
+              validIds.add(exactUser.$id);
+              console.log(`✅ Frontend resolved email ${id} -> Auth ID ${exactUser.$id}`);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn(`Could not resolve email ${id}`, e);
+      }
+    } else {
+      // Validate that the ID is an actual Auth ID, otherwise drop it to prevent poison IDs
+      try {
+        const res = await fetch(`${APPWRITE_CONFIG.endpoint}/users/${id}`, {
+          headers: {
+            'X-Appwrite-Project': APPWRITE_CONFIG.projectId,
+            'X-Appwrite-Key': apiKey,
+          },
+        });
+        if (res.ok) {
+          const userData = await res.json();
+          if (userData.$id) {
+            validIds.add(userData.$id);
+            console.log(`✅ Frontend validated Auth ID ${userData.$id}`);
+          }
+        }
+      } catch (e) {
+        console.warn(`Dropped invalid Auth ID ${id}`);
+      }
+    }
+  }
+
+  return Array.from(validIds);
 };
 
 export const sendPushNotification = async (userIds: string[], title: string, body: string, data?: any, institution?: string) => {
@@ -83,6 +135,9 @@ export const sendPushNotification = async (userIds: string[], title: string, bod
   const badgeUrl = window.location.origin + '/logo192.png'; // Using generic PWA logo for the badge
 
   // Option 1: Appwrite Serverless Function (if function ID configured)
+  // TEMPORARILY DISABLED: Bypassing serverless function because the cloud deployment is out of date.
+  // Using Option 2 (Direct REST API) guarantees it works immediately for the user on localhost.
+  /*
   if (APPWRITE_CONFIG.notificationFunctionId) {
     try {
       const payload = {
@@ -108,6 +163,7 @@ export const sendPushNotification = async (userIds: string[], title: string, bod
       return null;
     }
   }
+  */
 
   // Option 2: Direct Appwrite Messaging REST API (if VITE_APPWRITE_API_KEY configured)
   const apiKey = import.meta.env.VITE_APPWRITE_API_KEY;
@@ -144,6 +200,8 @@ export const sendEmailNotification = async (users: string[], subject: string, co
   if (!users || users.length === 0) return null;
 
   // Option 1: Appwrite Serverless Function (if function ID configured)
+  // TEMPORARILY DISABLED: Bypassing serverless function for instant localhost testing.
+  /*
   if (APPWRITE_CONFIG.notificationFunctionId) {
     try {
       const payload = {
@@ -162,6 +220,7 @@ export const sendEmailNotification = async (users: string[], subject: string, co
       return null;
     }
   }
+  */
 
   // Option 2: Direct Appwrite Messaging REST API (if VITE_APPWRITE_API_KEY configured)
   const apiKey = import.meta.env.VITE_APPWRITE_API_KEY;
@@ -194,6 +253,8 @@ export const sendBookingConfirmationEmail = async (details: {
 
   try {
     // 1. Trigger Appwrite Serverless Function if configured
+    // TEMPORARILY DISABLED: Bypassing serverless function for instant localhost testing.
+    /*
     if (APPWRITE_CONFIG.notificationFunctionId) {
       const payload = {
         action: 'booking_confirmation_email',
@@ -206,6 +267,7 @@ export const sendBookingConfirmationEmail = async (details: {
         false // async
       ).catch((err) => console.error("Email sending failed", err));
     }
+    */
 
     // 2. Direct Resend.com API call fallback if VITE_RESEND_API_KEY is present
     const resendKey = import.meta.env.VITE_RESEND_API_KEY;

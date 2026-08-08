@@ -37,46 +37,41 @@ export default async ({ req, res, log, error }) => {
 
       log(`Sending Push Notification: "${title}" to raw targets: ${users.join(', ')}`);
 
-      // Resolve emails to Auth User IDs
+      // Resolve emails and validate IDs directly against Appwrite Auth
       const usersSdk = new Users(client);
       const resolvedTargetIds = new Set();
-      let hasEmail = false;
-      let resolvedAtLeastOneEmail = false;
 
       for (const identifier of users) {
         if (!identifier) continue;
         try {
           if (identifier.includes('@')) {
-            hasEmail = true;
             // It's an email, look up the Auth User
             const res = await usersSdk.list([Query.equal("email", identifier)]);
             if (res.total > 0) {
               resolvedTargetIds.add(res.users[0].$id);
-              resolvedAtLeastOneEmail = true;
+              log(`Resolved email ${identifier} -> Auth ID ${res.users[0].$id}`);
+            } else {
+              log(`No Auth user found for email ${identifier}`);
             }
           } else {
-             // It's not an email. If it's a valid Auth ID, we could add it.
-             // But since frontend sends DB IDs along with Emails, it's safer to only rely on Emails if they are provided.
-             if (!hasEmail) {
-               resolvedTargetIds.add(identifier);
-             }
+            // It's an ID. Validate that it's a real Auth User ID to prevent crashing the Push API.
+            try {
+              const res = await usersSdk.get(identifier);
+              if (res && res.$id) {
+                resolvedTargetIds.add(res.$id);
+                log(`Validated Auth ID ${identifier}`);
+              }
+            } catch (err) {
+              log(`Skipping invalid Auth ID ${identifier}: ${err.message}`);
+            }
           }
         } catch (e) {
-          log(`Error looking up user by email ${identifier}: ${e.message}`);
+          log(`Error looking up user ${identifier}: ${e.message}`);
         }
       }
 
-      // If they sent emails but NONE resolved, maybe fallback to raw IDs (though they are likely DB IDs)
-      if (hasEmail && !resolvedAtLeastOneEmail && resolvedTargetIds.size === 0) {
-         users.forEach(u => {
-           if (!u.includes('@')) resolvedTargetIds.add(u);
-         });
-      } else if (!hasEmail && resolvedTargetIds.size === 0) {
-         users.forEach(u => resolvedTargetIds.add(u));
-      }
-
       const finalTargets = Array.from(resolvedTargetIds);
-      log(`Resolved Push Targets to Auth IDs: ${finalTargets.join(', ')}`);
+      log(`Final Validated Push Targets: ${finalTargets.join(', ')}`);
 
       if (finalTargets.length === 0) {
          return res.json({ success: false, message: 'No valid Auth users found for push notification' }, 400);
