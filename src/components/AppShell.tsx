@@ -26,16 +26,80 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [mounted, setMounted] = useState(false);
 
-  // Swipe gesture state for 1:1 Instagram-style tab switching
+  // Swipe gesture state for 1:1 tab switching
   const [touchStart, setTouchStart] = useState<{ x: number; y: number; time: number } | null>(null);
   const [touchDeltaX, setTouchDeltaX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const isPublicRoute = pathname === "/login" || pathname === "/" || pathname.endsWith("/confirmed");
+    if (ready && !user && !isPublicRoute) {
+      navigate({ to: "/login" });
+    }
+  }, [user, ready, pathname, navigate]);
+
+  useEffect(() => {
+    if (!user || !mounted) return;
+
+    let unsubscribe = () => {};
+    try {
+      unsubscribe = subscribeToNotifications((response) => {
+        if (!response || !response.events) return;
+        if (response.events.includes('databases.*.collections.*.documents.*.create')) {
+          const payload = response.payload as any;
+          if (payload.userId && payload.userId !== user.$id) return;
+          if (payload.targetUserEmail && payload.targetUserEmail !== user.email) return;
+
+          console.log("[IN-APP NOTIFICATION RECEIVED]", payload.title || payload.message);
+        }
+      });
+    } catch (err) {
+      console.warn("Notifications realtime error:", err);
+    }
+
+    return () => {
+      if (typeof unsubscribe === "function") {
+        try {
+          unsubscribe();
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+  }, [user, mounted]);
+
+  const visibleNavItems = useMemo(() => {
+    return navItems.filter((i) => {
+      if (i.superAdminOnly) return isSuperAdminUser(realUser);
+
+      const isCoordinatorOrAdmin = isCoordinatorUser(user) || user?.role === "admin";
+      const isOrganizer = user?.role === "organizer";
+
+      if (isOrganizer) {
+        if (i.to === "/organizer" || i.to === "/profile" || i.to === "/calendar") return true;
+        return false;
+      } else if (isCoordinatorOrAdmin) {
+        if (i.to === "/bookings" || i.to === "/auditoriums" || i.to === "/organizer") return false;
+        if (i.to === "/coordinator" && user?.role === "admin") return false;
+        if (i.to === "/coordinator" || i.to === "/profile") return true;
+        if ((user?.role === "admin" || user?.role === "super_admin") && (i.to === "/admin" || i.to === "/calendar")) return true;
+        return false;
+      } else {
+        if (i.adminOnly || i.to === "/coordinator" || i.to === "/organizer") return false;
+        return true;
+      }
+    });
+  }, [user, realUser]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0];
     setTouchStart({ x: touch.clientX, y: touch.clientY, time: Date.now() });
     setTouchDeltaX(0);
-    setIsDragging(true);
+    setIsDragging(false);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -44,21 +108,20 @@ export function AppShell({ children }: { children: ReactNode }) {
     const dx = touch.clientX - touchStart.x;
     const dy = touch.clientY - touchStart.y;
 
-    if (Math.abs(dx) > Math.abs(dy) * 1.1) {
+    if (Math.abs(dx) > Math.abs(dy) * 1.5 && Math.abs(dx) > 10) {
       setTouchDeltaX(dx);
+      setIsDragging(true);
     }
   };
 
   const handleTouchEnd = () => {
     if (!touchStart) return;
-    setIsDragging(false);
     
     const duration = Date.now() - touchStart.time;
     const velocity = Math.abs(touchDeltaX) / Math.max(duration, 1);
-    const minSwipeDistance = 45;
-    const isFastSwipe = velocity > 0.3 && Math.abs(touchDeltaX) > 20;
+    const minSwipeDistance = 50;
 
-    if (Math.abs(touchDeltaX) >= minSwipeDistance || isFastSwipe) {
+    if (isDragging && (Math.abs(touchDeltaX) >= minSwipeDistance || velocity > 0.3)) {
       const activeIdx = visibleNavItems.findIndex((item) => pathname.startsWith(item.to));
       if (activeIdx !== -1) {
         if (touchDeltaX < 0 && activeIdx < visibleNavItems.length - 1) {
@@ -71,6 +134,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
     setTouchStart(null);
     setTouchDeltaX(0);
+    setIsDragging(false);
   };
 
   const showUserUI = mounted && user;
@@ -123,7 +187,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           showUserUI ? "pb-36 sm:pb-44" : "pb-10"
         )}
         style={{
-          transform: touchDeltaX ? `translate3d(${touchDeltaX * 0.75}px, 0px, 0px)` : "none",
+          transform: isDragging && touchDeltaX ? `translate3d(${touchDeltaX * 0.75}px, 0px, 0px)` : "none",
           transition: isDragging ? "none" : "transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)",
           willChange: "transform",
         }}
@@ -197,4 +261,3 @@ export function AppShell({ children }: { children: ReactNode }) {
     </div>
   );
 }
-
