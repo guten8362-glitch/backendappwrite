@@ -155,7 +155,7 @@ function RootComponent() {
     return () => clearTimeout(timer);
   }, []);
 
-  const showSplash = initialSplash || isNavigating;
+  const showSplash = initialSplash;
 
   return (
     <QueryClientProvider client={queryClient}>

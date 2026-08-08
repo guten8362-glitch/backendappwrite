@@ -16,8 +16,6 @@ const navItems = [
   { to: "/super-admin", label: "Super Admin", icon: ShieldAlert, superAdminOnly: true },
   { to: "/organizer", label: "Confirmed Venues", icon: CalendarCheck, adminOnly: true },
   { to: "/calendar", label: "Calendar", icon: CalendarDays },
-  { to: "/notifications", label: "Alerts", icon: Bell },
-  { to: "/notification-diagnostics", label: "Push Diagnostics", icon: Bell, adminOnly: true },
   { to: "/profile", label: "Profile", icon: User },
 ];
 
@@ -81,12 +79,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       const isOrganizer = user?.role === "organizer";
 
       if (isOrganizer) {
-        if (i.to === "/organizer" || i.to === "/notifications" || i.to === "/profile" || i.to === "/calendar") return true;
+        if (i.to === "/organizer" || i.to === "/profile" || i.to === "/calendar") return true;
         return false;
       } else if (isCoordinatorOrAdmin) {
         if (i.to === "/bookings" || i.to === "/auditoriums" || i.to === "/organizer") return false;
         if (i.to === "/coordinator" && user?.role === "admin") return false;
-        if (i.to === "/coordinator" || i.to === "/notifications" || i.to === "/profile") return true;
+        if (i.to === "/coordinator" || i.to === "/profile") return true;
         if ((user?.role === "admin" || user?.role === "super_admin") && (i.to === "/admin" || i.to === "/calendar")) return true;
         return false;
       } else {

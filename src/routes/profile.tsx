@@ -25,7 +25,24 @@ function Profile() {
   const { user } = useAuth();
   const name = user?.name || "Campus User";
   const institution = user?.institution || "—";
-  const roleDisplay = user?.role === "admin" ? "System Administrator" : user?.role === "coordinator" ? "Authorised Coordinator" : "User / Applicant";
+
+  const getProfileRoleDisplay = () => {
+    if (!user) return "User";
+    const inst = (user.institution || "MVIT").trim();
+
+    if (user.role === "admin" || user.role === "super_admin") {
+      return "MVIT Principal";
+    }
+    if (user.role === "coordinator") {
+      return `${inst} Principal`;
+    }
+    if (user.role === "organizer") {
+      return `${inst || "MVIT"} Organiser`;
+    }
+    return `${inst} User`;
+  };
+
+  const roleDisplay = getProfileRoleDisplay();
 
   return (
     <AppShell>
