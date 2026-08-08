@@ -26,6 +26,8 @@ function Profile() {
   const name = user?.name || "Campus User";
   const institution = user?.institution || "—";
 
+  const isAdminOrCoordinator = user?.role === "admin" || user?.role === "super_admin" || user?.role === "coordinator";
+
   const userBookings = bookings.filter((b) => {
     if (!user) return false;
     const uEmail = (user.email || "").toLowerCase().trim();
@@ -49,8 +51,24 @@ function Profile() {
     return false;
   });
 
-  const confirmedCount = userBookings.filter(b => b.stage === "confirmed").length;
-  const pendingCount = userBookings.filter(b => b.stage !== "confirmed" && b.stage !== "rejected").length;
+  // Admin & Coordinator stats (filtered by purview if coordinator)
+  const relevantBookings = bookings.filter((b) => {
+    if (!user) return false;
+    if (user.role === "admin" || user.role === "super_admin") return true;
+    if (user.role === "coordinator") {
+      const userInst = (user.institution || "").toLowerCase().trim();
+      const bInst = (b.institution || "").toLowerCase().trim();
+      return !userInst || !bInst || bInst === userInst;
+    }
+    return true;
+  });
+
+  const totalRequestsCount = relevantBookings.length;
+  const confirmedRequestsCount = relevantBookings.filter((b) => b.stage === "confirmed").length;
+  const declinedRequestsCount = relevantBookings.filter((b) => b.stage === "rejected").length;
+
+  const confirmedCount = userBookings.filter((b) => b.stage === "confirmed").length;
+  const pendingCount = userBookings.filter((b) => b.stage !== "confirmed" && b.stage !== "rejected").length;
 
   const getProfileRoleDisplay = () => {
     if (!user) return "User";
@@ -69,6 +87,7 @@ function Profile() {
   };
 
   const roleDisplay = getProfileRoleDisplay();
+  const displayList = isAdminOrCoordinator ? relevantBookings : userBookings;
 
   return (
     <AppShell>
@@ -86,23 +105,38 @@ function Profile() {
           </div>
         </div>
         <Row label="Institution" value={institution} />
-        <Row label="My Total Bookings" value={userBookings.length} />
-        <Row label="Confirmed Bookings" value={confirmedCount} />
-        <Row label="Pending Approvals" value={pendingCount} />
+
+        {isAdminOrCoordinator ? (
+          <>
+            <Row label="Total Requests" value={totalRequestsCount} />
+            <Row label="Confirmed Requests" value={confirmedRequestsCount} />
+            <Row label="Declined Requests" value={declinedRequestsCount} />
+          </>
+        ) : (
+          <>
+            <Row label="My Total Bookings" value={userBookings.length} />
+            <Row label="Confirmed Bookings" value={confirmedCount} />
+            <Row label="Pending Approvals" value={pendingCount} />
+          </>
+        )}
       </Surface>
 
-      {/* List of user's personal bookings */}
-      {userBookings.length > 0 && (
+      {/* Activity List */}
+      {displayList.length > 0 && (
         <div className="mt-6 space-y-3">
-          <h3 className="text-sm font-bold text-foreground uppercase tracking-wider px-1">Your Personal Bookings</h3>
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wider px-1">
+            {isAdminOrCoordinator ? "Recent Campus Requests" : "Your Personal Bookings"}
+          </h3>
           <div className="space-y-2.5">
-            {userBookings.map((b) => {
+            {displayList.slice(0, 10).map((b) => {
               const aud = getAuditorium(b.auditoriumId);
               return (
                 <div key={b.id} className="surface p-4 rounded-xl flex items-center justify-between gap-3">
                   <div>
                     <h4 className="font-semibold text-sm">{b.eventName || "Auditorium Request"}</h4>
-                    <p className="text-xs text-muted-foreground">{aud?.name || "Campus Auditorium"} • {b.date || "N/A"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {aud?.name || "Campus Auditorium"} • {b.date || "N/A"} • {b.institution || "MVIT"}
+                    </p>
                   </div>
                   <span className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize ${
                     b.stage === 'confirmed' 
@@ -111,7 +145,7 @@ function Profile() {
                       ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
                       : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
                   }`}>
-                    {b.stage.replace('_', ' ')}
+                    {b.stage === 'rejected' ? 'Declined' : b.stage.replace('_', ' ')}
                   </span>
                 </div>
               );
