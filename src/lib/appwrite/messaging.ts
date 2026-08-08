@@ -41,66 +41,8 @@ const sendAppwriteMessagingRequest = async (endpoint: string, payload: any) => {
 // Removed resolveAuthUserIdsByEmailOrId as it incorrectly mapped emails to DB document IDs.
 // The Serverless Function correctly maps emails to Auth User IDs natively.
 export const filterUsersWithTargets = async (userIds: string[]): Promise<string[]> => {
-  const apiKey = import.meta.env.VITE_APPWRITE_API_KEY || '';
-  if (!apiKey || !userIds || userIds.length === 0) return userIds;
-
-  const validIds: string[] = [];
-  for (const id of userIds) {
-    if (!id) continue;
-    
-    let targetId = id;
-    
-    // Resolve email to Auth ID if it's an email
-    if (id.includes('@')) {
-      try {
-        const query = encodeURIComponent(id);
-        const userRes = await fetch(`${APPWRITE_CONFIG.endpoint}/users?search=${query}`, {
-          headers: {
-            'X-Appwrite-Project': APPWRITE_CONFIG.projectId,
-            'X-Appwrite-Key': apiKey,
-          },
-        });
-        if (userRes.ok) {
-          const userData = await userRes.json();
-          if (userData.users && userData.users.length > 0) {
-            // Appwrite 'search' matches any user containing the string (e.g. '@gmail.com' matches all).
-            // We MUST find the exact match to avoid resolving to the wrong user.
-            const exactUser = userData.users.find((u: any) => u.email === id);
-            if (exactUser) {
-              targetId = exactUser.$id;
-              console.log(`✅ Resolved email ${id} to Auth ID ${targetId}`);
-            } else {
-              console.warn(`❌ Could not find exact email match for ${id}`);
-            }
-          }
-        }
-      } catch (e) {
-        console.warn(`Could not resolve email ${id}`, e);
-      }
-    }
-
-    try {
-      const res = await fetch(`${APPWRITE_CONFIG.endpoint}/users/${targetId}/targets`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Appwrite-Project': APPWRITE_CONFIG.projectId,
-          'X-Appwrite-Key': apiKey,
-        },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.targets && data.targets.length > 0) {
-          if (!validIds.includes(targetId)) validIds.push(targetId);
-        }
-      } else {
-        // If it's a valid ID (not an email), include it as fallback
-        if (!targetId.includes('@') && !validIds.includes(targetId)) validIds.push(targetId);
-      }
-    } catch {
-      if (!targetId.includes('@') && !validIds.includes(targetId)) validIds.push(targetId);
-    }
-  }
-  return validIds;
+  // Bypass buggy frontend validation and let the Serverless Function handle target resolution securely.
+  return userIds.filter(Boolean);
 };
 
 export const sendPushNotification = async (userIds: string[], title: string, body: string, data?: any, institution?: string) => {
