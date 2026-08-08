@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ArrowLeft, Bell, CalendarCheck, CalendarDays, Home, LogOut, ShieldCheck, User, Building2, ShieldAlert } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth, isCoordinatorUser, isSuperAdminUser } from "@/lib/auth";
 import { subscribeToNotifications } from "@/lib/appwrite/realtime";
@@ -23,20 +23,18 @@ const navItems = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isRouterPending = useRouterState({ select: (s) => s.status === "pending" || s.isLoading });
-  const [navLoading, setNavLoading] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const { user, realUser, isImpersonating, ready } = useAuth();
   const navigate = useNavigate();
   const [mounted, setMounted] = useState(false);
 
+  // Swipe gesture state for tab switching
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+  const [touchDeltaX, setTouchDeltaX] = useState(0);
+
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    setNavLoading(false);
-  }, [pathname]);
 
   useEffect(() => {
     const isPublicRoute = pathname === "/login" || pathname === "/" || pathname.endsWith("/confirmed");
@@ -57,7 +55,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           if (payload.userId && payload.userId !== user.$id) return;
           if (payload.targetUserEmail && payload.targetUserEmail !== user.email) return;
 
-          // Realtime notification event received - log for in-app badge update without firing duplicate OS popups
           console.log("[IN-APP NOTIFICATION RECEIVED]", payload.title || payload.message);
         }
       });
@@ -76,6 +73,65 @@ export function AppShell({ children }: { children: ReactNode }) {
     };
   }, [user, mounted]);
 
+  const visibleNavItems = useMemo(() => {
+    return navItems.filter((i) => {
+      if (i.superAdminOnly) return isSuperAdminUser(realUser);
+
+      const isCoordinatorOrAdmin = isCoordinatorUser(user) || user?.role === "admin";
+      const isOrganizer = user?.role === "organizer";
+
+      if (isOrganizer) {
+        if (i.to === "/organizer" || i.to === "/notifications" || i.to === "/profile" || i.to === "/calendar") return true;
+        return false;
+      } else if (isCoordinatorOrAdmin) {
+        if (i.to === "/bookings" || i.to === "/auditoriums" || i.to === "/organizer") return false;
+        if (i.to === "/coordinator" && user?.role === "admin") return false;
+        if (i.to === "/coordinator" || i.to === "/notifications" || i.to === "/profile") return true;
+        if ((user?.role === "admin" || user?.role === "super_admin") && (i.to === "/admin" || i.to === "/calendar")) return true;
+        return false;
+      } else {
+        if (i.adminOnly || i.to === "/coordinator" || i.to === "/organizer") return false;
+        return true;
+      }
+    });
+  }, [user, realUser]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    setTouchStart({ x: touch.clientX, y: touch.clientY });
+    setTouchDeltaX(0);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStart) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - touchStart.x;
+    const dy = touch.clientY - touchStart.y;
+
+    if (Math.abs(dx) > Math.abs(dy) * 1.2) {
+      setTouchDeltaX(dx);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart) return;
+    const minSwipeDistance = 70;
+
+    if (Math.abs(touchDeltaX) >= minSwipeDistance) {
+      const activeIdx = visibleNavItems.findIndex((item) => pathname.startsWith(item.to));
+      if (activeIdx !== -1) {
+        if (touchDeltaX < 0 && activeIdx < visibleNavItems.length - 1) {
+          navigate({ to: visibleNavItems[activeIdx + 1].to });
+        } else if (touchDeltaX > 0 && activeIdx > 0) {
+          navigate({ to: visibleNavItems[activeIdx - 1].to });
+        }
+      }
+    }
+
+    setTouchStart(null);
+    setTouchDeltaX(0);
+  };
+
   const showUserUI = mounted && user;
 
   return (
@@ -93,10 +149,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             {/* Top Left Back Button */}
             <button
               type="button"
-              onClick={() => {
-                setNavLoading(true);
-                window.history.back();
-              }}
+              onClick={() => window.history.back()}
               className="press group inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-1.5 text-[0.82rem] font-semibold text-foreground shadow-xs transition-all hover:bg-muted hover:border-primary/40 hover:shadow-sm"
               title="Go back to previous page"
             >
@@ -119,27 +172,19 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
       )}
 
-      {/* Navigation Transition Loading Screen */}
-      {(navLoading || isRouterPending) && (
-        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-md transition-all duration-200 print:hidden animate-fade-in">
-          <div className="relative flex flex-col items-center">
-            <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-            <img
-              src="/logos/logo4.jpg"
-              alt="MVIT Logo"
-              className="absolute top-1/2 left-1/2 h-8 w-8 sm:h-10 sm:w-10 -translate-x-1/2 -translate-y-1/2 rounded-xl object-contain shadow-md"
-            />
-          </div>
-          <p className="mt-4 text-xs sm:text-sm font-bold text-foreground tracking-tight">
-            Loading page...
-          </p>
-          <p className="mt-0.5 text-[0.72rem] text-muted-foreground">
-            Central Hall Booking
-          </p>
-        </div>
-      )}
-
-      <main className={cn("mx-auto w-full", pathname === "/login" ? "max-w-md px-4 flex-1 flex flex-col justify-center py-2" : "max-w-5xl px-4 sm:px-6 pt-6 sm:pt-10", showUserUI ? "pb-36 sm:pb-44" : "pb-10")}>
+      <main
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className={cn(
+          "mx-auto w-full transition-transform duration-200 ease-out touch-pan-y",
+          pathname === "/login" ? "max-w-md px-4 flex-1 flex flex-col justify-center py-2" : "max-w-5xl px-4 sm:px-6 pt-6 sm:pt-10",
+          showUserUI ? "pb-36 sm:pb-44" : "pb-10"
+        )}
+        style={{
+          transform: touchDeltaX ? `translateX(${touchDeltaX * 0.35}px)` : "none",
+        }}
+      >
         <NotificationBanner />
         {children}
       </main>
@@ -150,78 +195,45 @@ export function AppShell({ children }: { children: ReactNode }) {
           onMouseLeave={() => setHovered(null)}
         >
           <div className="flex items-center justify-between sm:justify-start gap-1 sm:gap-2 rounded-2xl sm:rounded-[2rem] border border-white/40 dark:border-white/10 bg-white/90 dark:bg-slate-900/90 px-2 py-2 sm:px-5 sm:py-3 shadow-2xl backdrop-blur-xl">
-            {navItems
-              .filter((i) => {
-                if (i.superAdminOnly) {
-                  return isSuperAdminUser(realUser);
-                }
-
-                const isCoordinatorOrAdmin = isCoordinatorUser(user) || user?.role === "admin";
-                const isOrganizer = user?.role === "organizer";
-
-                if (isOrganizer) {
-                   if (i.to === "/organizer" || i.to === "/notifications" || i.to === "/profile" || i.to === "/calendar") return true;
-                   return false;
-                } else if (isCoordinatorOrAdmin) {
-                  // Hide Book Venue and My Bookings for coordinators/admins
-                  if (i.to === "/bookings" || i.to === "/auditoriums" || i.to === "/organizer") return false;
-                  // Hide Coordinator portal for admin, but show for coordinators
-                  if (i.to === "/coordinator" && user?.role === "admin") return false;
-                  
-                  if (i.to === "/coordinator" || i.to === "/notifications" || i.to === "/profile") return true;
-                  // Show Admin panel and Calendar only for super admins
-                  if ((user?.role === "admin" || user?.role === "super_admin") && (i.to === "/admin" || i.to === "/calendar")) return true;
-                  return false;
-                } else {
-                  // Normal users
-                  if (i.adminOnly || i.to === "/coordinator" || i.to === "/organizer") return false;
-                  return true; // Show all other normal user tabs
-                }
-              })
-              .map((i) => {
-                const active = pathname.startsWith(i.to);
-                const isHovered = hovered === i.to;
-                const Icon = i.icon;
-                const isHighlight = active || isHovered;
-                return (
-                  <Link
-                    key={i.to}
-                    to={i.to}
-                    onMouseEnter={() => setHovered(i.to)}
-                    onClick={() => {
-                      if (!pathname.startsWith(i.to)) {
-                        setNavLoading(true);
-                      }
-                    }}
-                    className="relative flex flex-1 sm:flex-initial flex-col items-center justify-center gap-1 rounded-xl px-1 py-1 sm:px-3 sm:py-1.5 transition-all duration-200 min-w-0"
+            {visibleNavItems.map((i) => {
+              const active = pathname.startsWith(i.to);
+              const isHovered = hovered === i.to;
+              const Icon = i.icon;
+              const isHighlight = active || isHovered;
+              return (
+                <Link
+                  key={i.to}
+                  to={i.to}
+                  onMouseEnter={() => setHovered(i.to)}
+                  className="relative flex flex-1 sm:flex-initial flex-col items-center justify-center gap-1 rounded-xl px-1 py-1 sm:px-3 sm:py-1.5 transition-all duration-200 min-w-0"
+                >
+                  <span
+                    className={cn(
+                      "flex items-center justify-center rounded-xl sm:rounded-2xl transition-all duration-200",
+                      isHighlight
+                        ? "size-8 sm:size-10 bg-primary text-primary-foreground shadow-md"
+                        : "size-8 sm:size-10 text-muted-foreground hover:text-foreground",
+                    )}
                   >
-                    <span
+                    <Icon
                       className={cn(
-                        "flex items-center justify-center rounded-xl sm:rounded-2xl transition-all duration-200",
-                        isHighlight
-                          ? "size-8 sm:size-10 bg-primary text-primary-foreground shadow-md"
-                          : "size-8 sm:size-10 text-muted-foreground hover:text-foreground",
+                        "transition-all duration-200",
+                        isHighlight ? "size-4 sm:size-5" : "size-4 sm:size-[0.95rem]",
+                        active && "animate-spring-bounce",
                       )}
-                    >
-                      <Icon
-                        className={cn(
-                          "transition-all duration-200",
-                          isHighlight ? "size-4 sm:size-5" : "size-4 sm:size-[0.95rem]",
-                          active && "animate-spring-bounce",
-                        )}
-                      />
-                    </span>
-                    <span
-                      className={cn(
-                        "text-[0.6rem] sm:text-[0.7rem] font-medium transition-all duration-200 truncate max-w-full text-center leading-none",
-                        active ? "text-primary font-semibold" : "text-muted-foreground",
-                      )}
-                    >
-                      {i.label}
-                    </span>
-                  </Link>
-                );
-              })}
+                    />
+                  </span>
+                  <span
+                    className={cn(
+                      "text-[0.6rem] sm:text-[0.7rem] font-medium transition-all duration-200 truncate max-w-full text-center leading-none",
+                      active ? "text-primary font-semibold" : "text-muted-foreground",
+                    )}
+                  >
+                    {i.label}
+                  </span>
+                </Link>
+              );
+            })}
 
             <div className="mx-0.5 h-6 sm:h-8 w-px bg-border/70 shrink-0 sm:mx-1" />
 
