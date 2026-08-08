@@ -173,11 +173,11 @@ function LoginPage() {
 
         navigate({ to: targetPath, replace: true });
       } else {
-        setError("Invalid email address");
+        setError("User not found");
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Authentication failed");
+      setError(err.message || "User not found");
     } finally {
       setLoading(false);
     }

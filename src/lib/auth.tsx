@@ -183,29 +183,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn("Appwrite session login failed, falling back to DB record:", appwriteErr);
       }
 
-      // 3. If user wasn't in DB yet, auto-create a user record
+      // 3. If user wasn't in DB or Appwrite Auth:
       if (!matchedDbUser && !appwriteUser) {
-        const isMVIT = cleanEmail.includes("@mvit") || cleanEmail.includes("mvit");
-        const newUserObj = {
-          email: cleanEmail,
-          name: cleanEmail.split("@")[0] || "User",
-          institution: isMVIT ? "MVIT" : "External Institution",
-          role: "user" as UserRole,
-        };
-        await addUserToDatabase(newUserObj);
-        matchedDbUser = {
-          ...newUserObj,
-          $id: `user_${Date.now()}`,
-        };
+        throw new Error("User not found");
       }
 
-      const activeUser: User = appwriteUser || matchedDbUser || {
-        email: cleanEmail,
-        name: cleanEmail.split("@")[0] || "User",
-        role: "user",
-        institution: "MVIT",
-        $id: `user_${Date.now()}`,
-      };
+      const activeUser: User = (appwriteUser || matchedDbUser)!;
 
       // Request and sync FCM Push Tokens safely
       try {
