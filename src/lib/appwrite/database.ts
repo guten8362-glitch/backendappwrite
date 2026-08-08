@@ -1,5 +1,5 @@
 import { ID, Query } from 'appwrite';
-import { databases } from './client';
+import { account, databases } from './client';
 import { APPWRITE_CONFIG } from './constants';
 
 export const listBookings = async () => {
@@ -120,8 +120,18 @@ export const listHalls = async () => {
     );
     return response.documents;
   } catch (error) {
-    console.error('Appwrite: Error fetching halls', error);
-    throw error;
+    console.warn('Appwrite: First attempt fetching halls failed, attempting session recovery:', error);
+    try {
+      await account.createAnonymousSession();
+      const retryResponse = await databases.listDocuments(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.collections.halls
+      );
+      return retryResponse.documents;
+    } catch (retryError) {
+      console.error('Appwrite: Error fetching halls after recovery:', retryError);
+      throw retryError;
+    }
   }
 };
 
