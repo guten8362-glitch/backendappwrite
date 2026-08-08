@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ArrowLeft, Bell, CalendarCheck, CalendarDays, Home, LogOut, ShieldCheck, User, Building2, ShieldAlert } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth, isCoordinatorUser, isSuperAdminUser } from "@/lib/auth";
 import { subscribeToNotifications } from "@/lib/appwrite/realtime";
@@ -30,6 +30,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [touchStart, setTouchStart] = useState<{ x: number; y: number; time: number } | null>(null);
   const [touchDeltaX, setTouchDeltaX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+
+  const prevIndexRef = useRef<number>(-1);
+  const [slideAnimClass, setSlideAnimClass] = useState("animate-fade-in");
 
   useEffect(() => {
     setMounted(true);
@@ -94,6 +97,20 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
     });
   }, [user, realUser]);
+
+  useEffect(() => {
+    const newIdx = visibleNavItems.findIndex((item) => pathname.startsWith(item.to));
+    if (newIdx !== -1 && prevIndexRef.current !== -1 && newIdx !== prevIndexRef.current) {
+      if (newIdx > prevIndexRef.current) {
+        setSlideAnimClass("animate-slide-in-right");
+      } else {
+        setSlideAnimClass("animate-slide-in-left");
+      }
+    }
+    if (newIdx !== -1) {
+      prevIndexRef.current = newIdx;
+    }
+  }, [pathname, visibleNavItems]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0];
@@ -181,14 +198,16 @@ export function AppShell({ children }: { children: ReactNode }) {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        key={pathname}
         className={cn(
-          "mx-auto w-full touch-pan-y animate-fade-in",
+          "mx-auto w-full touch-pan-y",
+          isDragging ? "" : slideAnimClass,
           pathname === "/login" ? "max-w-md px-4 flex-1 flex flex-col justify-center py-2" : "max-w-5xl px-4 sm:px-6 pt-6 sm:pt-10",
           showUserUI ? "pb-36 sm:pb-44" : "pb-10"
         )}
         style={{
           transform: isDragging && touchDeltaX ? `translate3d(${touchDeltaX * 0.75}px, 0px, 0px)` : "none",
-          transition: isDragging ? "none" : "transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)",
+          transition: isDragging ? "none" : "transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)",
           willChange: "transform",
         }}
       >
