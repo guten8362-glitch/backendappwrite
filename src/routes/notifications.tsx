@@ -20,9 +20,14 @@ export const Route = createFileRoute("/notifications")({
   component: Notifications,
 });
 
+import { listNotifications } from "@/lib/appwrite/database";
+import { useAuth } from "@/lib/auth";
+
 function Notifications() {
   const { bookings, ready, getAuditorium } = useBookings();
+  const { user } = useAuth();
   const [clearedAlerts, setClearedAlerts] = useState<string[]>([]);
+  const [dbNotifications, setDbNotifications] = useState<any[]>([]);
 
   useEffect(() => {
     const saved = localStorage.getItem("cleared_alerts");
@@ -31,6 +36,12 @@ function Notifications() {
         setClearedAlerts(JSON.parse(saved));
       } catch (e) { }
     }
+
+    listNotifications().then((docs) => {
+      if (Array.isArray(docs)) {
+        setDbNotifications(docs);
+      }
+    }).catch(() => {});
   }, []);
 
   const activeAlerts = bookings.filter((b) => !clearedAlerts.includes(`${b.id}-${b.stage}`));
@@ -38,18 +49,23 @@ function Notifications() {
   const handleClearAll = () => {
     const newCleared = [
       ...clearedAlerts,
-      ...activeAlerts.map(b => `${b.id}-${b.stage}`)
+      ...activeAlerts.map(b => `${b.id}-${b.stage}`),
+      ...dbNotifications.map(n => n.$id)
     ];
     setClearedAlerts(newCleared);
     localStorage.setItem("cleared_alerts", JSON.stringify(newCleared));
   };
+
+  const filteredDbNotifs = dbNotifications.filter((n) => !clearedAlerts.includes(n.$id));
+
+  const totalNotifCount = activeAlerts.length + filteredDbNotifs.length;
 
   return (
     <AppShell>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <PageTitle title="Notifications" subtitle="Updates on your hall requests (Synced with live database)." />
         
-        {activeAlerts.length > 0 && (
+        {totalNotifCount > 0 && (
           <button 
             onClick={handleClearAll}
             className="flex items-center gap-2 rounded-xl bg-muted/60 px-4 py-2 text-xs font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all shadow-sm"
@@ -59,7 +75,7 @@ function Notifications() {
         )}
       </div>
 
-      {ready && activeAlerts.length === 0 && (
+      {ready && totalNotifCount === 0 && (
         <Surface className="flex flex-col items-center gap-4 py-16 text-center">
           <span className="grid size-14 place-items-center rounded-2xl bg-primary-soft text-primary">
             <Bell className="size-6" />
@@ -69,18 +85,39 @@ function Notifications() {
       )}
 
       <div className="space-y-3">
+        {filteredDbNotifs.map((n, i) => (
+          <Surface key={n.$id || i} className="p-5 border-l-4 border-l-primary" delay={i * 40}>
+            <div className="flex items-start gap-4">
+              <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
+                <Bell className="size-4" />
+              </span>
+              <div>
+                <p className="text-[0.93rem] font-bold text-foreground">
+                  {n.title || "Booking Notification"}
+                </p>
+                <p className="mt-1 text-[0.85rem] font-medium text-foreground/80">
+                  {n.message}
+                </p>
+                <p className="mt-1.5 text-[0.78rem] text-muted-foreground">
+                  {n.$createdAt ? new Date(n.$createdAt).toLocaleString("en-GB") : "Recently"}
+                </p>
+              </div>
+            </div>
+          </Surface>
+        ))}
+
         {activeAlerts.map((b, i) => (
-          <Surface key={`${b.id}-${b.stage}`} className="p-5" delay={i * 60}>
+          <Surface key={`${b.id}-${b.stage}`} className="p-5" delay={(filteredDbNotifs.length + i) * 40}>
             <div className="flex items-start gap-4">
               <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
                 <Bell className="size-4" />
               </span>
               <div>
                 <p className="text-[0.93rem] font-medium">
-                  {getStageInfo(b.stage).label} · {getAuditorium(b.auditoriumId)?.name ?? "Hall"}
+                  {getStageInfo(b.stage).label} · {getAuditorium(b.auditoriumId)?.name ?? "Campus Auditorium"}
                 </p>
                 <p className="mt-1 text-[0.82rem] text-muted-foreground">
-                  Request {b.id} · {new Date(b.createdAt).toLocaleString("en-GB")}
+                  Request ID: {b.id} · {b.createdAt ? new Date(b.createdAt).toLocaleString("en-GB") : "Recent"}
                 </p>
               </div>
             </div>

@@ -102,6 +102,20 @@ export function OrganizerPortal() {
     });
   }, [confirmedBookings, search, getAuditorium]);
 
+  const [globalReminderDays, setGlobalReminderDays] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem("bms_organizer_reminder_days");
+      return saved ? parseInt(saved) : 2;
+    } catch {
+      return 2;
+    }
+  });
+
+  const handleSetReminderDays = (days: number) => {
+    setGlobalReminderDays(days);
+    localStorage.setItem("bms_organizer_reminder_days", String(days));
+  };
+
   if (!ready) {
     return (
       <AppShell>
@@ -131,16 +145,50 @@ export function OrganizerPortal() {
 
   return (
     <AppShell>
-      <div className="mb-6">
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary-soft px-3 py-1 text-[0.75rem] font-bold uppercase tracking-wider text-primary mb-2">
-          <PackageCheck className="h-3.5 w-3.5" /> Facilities & Stores Dashboard
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary-soft px-3 py-1 text-[0.75rem] font-bold uppercase tracking-wider text-primary mb-2">
+            <PackageCheck className="h-3.5 w-3.5" /> Facilities & Stores Dashboard
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+            Confirmed Venue Requirements
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Review upcoming confirmed events to prepare seating and arrangements.
+          </p>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-          Confirmed Venue Requirements
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Review upcoming confirmed events to prepare seating and arrangements.
-        </p>
+
+        {/* Top Right Corner Event Reminder Controls Widget */}
+        <div className="surface p-4 rounded-2xl border border-amber-300/60 dark:border-amber-900/40 bg-gradient-to-br from-amber-500/10 via-card to-card shadow-sm shrink-0 w-full sm:w-auto">
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <span className="text-xs font-extrabold text-amber-700 dark:text-amber-300 flex items-center gap-1.5 uppercase tracking-wider">
+              <BellRing className="h-4 w-4 animate-bounce text-amber-600" /> Event Reminder Alert
+            </span>
+            <span className="text-[0.7rem] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200">
+              Active
+            </span>
+          </div>
+          <p className="text-[0.78rem] text-muted-foreground mb-2.5">
+            Notify me of upcoming confirmed events:
+          </p>
+          <div className="flex items-center gap-1.5">
+            {[1, 2, 3, 7].map((days) => (
+              <button
+                key={days}
+                type="button"
+                onClick={() => handleSetReminderDays(days)}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-[0.78rem] font-bold transition-all border",
+                  globalReminderDays === days
+                    ? "bg-amber-600 text-white border-amber-600 shadow-sm"
+                    : "bg-card border-border hover:bg-muted text-foreground"
+                )}
+              >
+                {days} {days === 1 ? "Day" : "Days"} Before
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

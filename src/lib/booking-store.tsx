@@ -89,9 +89,17 @@ export const getInstitutionLogo = (inst: string) => {
 
 export const getApprovalWorkflow = (institution?: string) => {
   const principalTitle = "MVIT Principal";
+  const inst = (institution || "MVIT").toUpperCase().trim();
+  const isMVIT = !institution || inst.includes("MVIT") || inst.includes("MANAKULA VINAYAGAR INSTITUTE") || inst === "SIR MVIT";
+
+  if (isMVIT) {
+    return [
+      { key: "pending_super_admin", label: `${principalTitle} Approval`, approver: principalTitle },
+    ];
+  }
   
   return [
-    { key: "pending_coordinator", label: "Coordinator Approval", approver: "Coordinator" },
+    { key: "pending_coordinator", label: "College Coordinator Approval", approver: "College Coordinator" },
     { key: "pending_super_admin", label: `${principalTitle} Approval`, approver: principalTitle },
   ];
 };
