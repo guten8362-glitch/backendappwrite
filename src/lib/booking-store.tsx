@@ -30,7 +30,7 @@ const notifyRole = async (role: string, subject: string, content: string, target
     }
 
     const userIds: string[] = targetUsers
-      .flatMap(u => [(u as any).mail_id, u.email, u.user_id, u.$id])
+      .flatMap(u => [(u as any).mail_id, u.email, u.user_id])
       .filter((id): id is string => Boolean(id));
 
     // 1. Record In-App database notifications for target users (Synced with Appwrite DB)
