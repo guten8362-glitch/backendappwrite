@@ -13,6 +13,8 @@ const MONTHS = [
 
 const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
+import { useAuth } from "@/lib/auth";
+
 export const Route = createFileRoute("/calendar")({
   head: () => ({
     meta: [
@@ -29,12 +31,34 @@ export const Route = createFileRoute("/calendar")({
     ],
   }),
   component: CalendarPage,
-});function CalendarPage() {
+});
+
+function CalendarPage() {
   const { bookings, ready, getAuditorium } = useBookings();
+  const { user } = useAuth();
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  const isMVITUser = () => {
+    if (!user) return true;
+    if (user.role === "admin" || user.role === "super_admin") return true;
+    const inst = (user.institution || "").toUpperCase();
+    return inst.includes("MVIT") || inst.includes("MANAKULA VINAYAGAR INSTITUTE");
+  };
+
+  const mvitFlag = isMVITUser();
+
+  const visibleBookings = bookings.filter((b) => {
+    if (mvitFlag) return true;
+    
+    // External users see ONLY backside auditorium bookings
+    const hallId = (b.auditoriumId || b.hallId || "").toLowerCase();
+    const hallName = (b.auditoriumName || b.hallName || "").toLowerCase();
+
+    return hallId.includes("back") || hallId.includes("backside") || hallName.includes("backside");
+  });
 
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
@@ -63,7 +87,7 @@ export const Route = createFileRoute("/calendar")({
   };
 
   const selectedBookings = selectedDate
-    ? bookings.filter((b) => isDateInRange(b, selectedDate))
+    ? visibleBookings.filter((b) => isDateInRange(b, selectedDate))
     : [];
 
   const prevMonth = () => {
@@ -150,7 +174,7 @@ export const Route = createFileRoute("/calendar")({
             }
 
             const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-            const dayBookings = bookings.filter((b) => isDateInRange(b, dateStr));
+            const dayBookings = visibleBookings.filter((b) => isDateInRange(b, dateStr));
             const selected = isSelected(day);
             const todayFlag = isToday(day);
 

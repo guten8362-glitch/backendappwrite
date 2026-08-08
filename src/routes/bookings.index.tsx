@@ -66,13 +66,26 @@ export function MyBookings() {
     }
   }, [authReady, user, navigate]);
 
-  const openBookings = bookings.filter(
+  const userBookings = bookings.filter((b) => {
+    if (!user) return true;
+    const uEmail = (user.email || "").toLowerCase().trim();
+    const uId = user.$id;
+
+    const bApplicantEmail = (b.applicantEmail || b.email || (b as any).targetUserEmail || "").toLowerCase().trim();
+    const bUserId = b.userId || (b as any).$id;
+
+    if (uEmail && bApplicantEmail === uEmail) return true;
+    if (uId && bUserId === uId) return true;
+    return false;
+  });
+
+  const openBookings = userBookings.filter(
     (b) => b.stage !== "confirmed" && b.stage !== "rejected"
   );
-  const confirmedBookings = bookings.filter((b) => b.stage === "confirmed");
-  const rejectedBookings = bookings.filter((b) => b.stage === "rejected");
+  const confirmedBookings = userBookings.filter((b) => b.stage === "confirmed");
+  const rejectedBookings = userBookings.filter((b) => b.stage === "rejected");
 
-  const filteredBookings = bookings.filter((b) => {
+  const filteredBookings = userBookings.filter((b) => {
     if (tab === "open") return b.stage !== "confirmed" && b.stage !== "rejected";
     if (tab === "confirmed") return b.stage === "confirmed";
     if (tab === "rejected") return b.stage === "rejected";
@@ -83,7 +96,7 @@ export function MyBookings() {
     <AppShell>
       <PageTitle title="My Bookings" subtitle="Follow each request through every stage." />
 
-      {ready && bookings.length > 0 && (
+      {ready && userBookings.length > 0 && (
         <div className="mb-4 sm:mb-6 flex overflow-x-auto whitespace-nowrap hide-scrollbar gap-2 rounded-2xl bg-muted/60 p-1.5 backdrop-blur border border-border/40">
           <button
             onClick={() => setTab("open")}
@@ -121,7 +134,7 @@ export function MyBookings() {
                 tab === "all" ? "bg-primary-soft text-primary" : "bg-muted text-muted-foreground"
               )}
             >
-              {bookings.length}
+              {userBookings.length}
             </span>
           </button>
 

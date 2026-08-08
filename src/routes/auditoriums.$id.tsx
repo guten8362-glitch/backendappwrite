@@ -1,10 +1,11 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { Check, MapPin, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Button, Surface } from "@/components/ui-kit";
 import { fetchAuditorium, type Auditorium } from "@/lib/auditoriums";
 import { listBookings } from "@/lib/appwrite/database";
+import { useBookings } from "@/lib/booking-store";
 import { cn } from "@/lib/utils";
 import { ImageCarousel } from "@/components/ImageCarousel";
 
@@ -60,14 +61,40 @@ function Details() {
     return d;
   });
 
+  const { bookings: storeBookings } = useBookings();
+
+  const allVenueBookings = useMemo(() => {
+    const combinedMap = new Map<string, any>();
+    
+    (confirmedBookings || []).forEach(b => {
+      if (b.status === "rejected" || b.stage === "rejected") return;
+      const id = b.$id || `${b.eventName}-${b.eventDate}`;
+      combinedMap.set(id, b);
+    });
+
+    (storeBookings || []).forEach(b => {
+      if (b.stage === "rejected") return;
+      const bHallId = (b.auditoriumId || b.hallId || "").toLowerCase();
+      const bHallName = (b.auditoriumName || b.hallName || "").toLowerCase();
+      const targetId = auditorium.id.toLowerCase();
+      const targetName = auditorium.name.toLowerCase();
+      if (bHallId === targetId || bHallId.includes(targetId) || bHallName.includes(targetName)) {
+        const id = b.$id || `${b.eventName}-${b.fromDate || b.date}`;
+        combinedMap.set(id, b);
+      }
+    });
+
+    return Array.from(combinedMap.values());
+  }, [confirmedBookings, storeBookings, auditorium.id, auditorium.name]);
+
   const bookedDaysMap = new Map<string, any>();
-  confirmedBookings.forEach(b => {
-    let from = b.eventDate ? b.eventDate.split('T')[0] : "";
-    let to = from;
+  allVenueBookings.forEach(b => {
+    let from = b.fromDate || (b.eventDate ? b.eventDate.split('T')[0] : "");
+    let to = b.toDate || from;
     let startTimeStr = "09:00";
     let endTimeStr = "17:00";
     try {
-      const remarks = JSON.parse(b.remarks || "{}");
+      const remarks = typeof b.remarks === "string" ? JSON.parse(b.remarks || "{}") : (b.remarks || {});
       if (remarks.fromDate) from = remarks.fromDate;
       if (remarks.toDate) to = remarks.toDate;
       if (remarks.startTimeStr) startTimeStr = remarks.startTimeStr;
@@ -77,13 +104,12 @@ function Details() {
     if (from && to) {
       const d = new Date(from);
       const endD = new Date(to);
-      // prevent infinite loops just in case of weird data
       let safety = 0;
-      while (d <= endD && safety < 30) {
+      while (d <= endD && safety < 60) {
         const dStr = d.toISOString().split('T')[0];
         bookedDaysMap.set(dStr, {
-          eventName: b.eventName || "Booked Event",
-          organizer: b.coordinatorName || "Organizer",
+          eventName: b.eventName || b.eventTitle || "Booked Event",
+          organizer: b.coordinatorName || b.applicantName || "Organizer",
           time: `${startTimeStr} - ${endTimeStr}`
         });
         d.setDate(d.getDate() + 1);
