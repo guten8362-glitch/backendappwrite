@@ -163,15 +163,18 @@ function RootComponent() {
         <BookingProvider>
           {showSplash && (
             <div className="fixed inset-0 z-50 flex h-screen w-screen flex-col items-center justify-center bg-background text-foreground transition-opacity duration-300">
-              <img
-                src="/logo.svg"
-                alt="Book My Hall"
-                className="h-32 w-32 animate-pulse rounded-full shadow-2xl ring-4 ring-primary/20"
-              />
-              <h1 className="mt-8 text-4xl font-bold tracking-tight text-primary">
-                Book My Hall
+              <div className="relative flex flex-col items-center">
+                <div className="h-20 w-20 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                <img
+                  src="/logos/logo4.jpg"
+                  alt="MVIT Logo"
+                  className="absolute top-1/2 left-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-xl object-contain shadow-md"
+                />
+              </div>
+              <h1 className="mt-6 text-xl font-bold tracking-tight text-foreground">
+                Central Hall Booking
               </h1>
-              <p className="mt-2 text-sm text-muted-foreground animate-pulse">
+              <p className="mt-1 text-xs text-muted-foreground animate-pulse">
                 Loading experience...
               </p>
             </div>

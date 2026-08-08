@@ -23,6 +23,8 @@ const navItems = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isRouterPending = useRouterState({ select: (s) => s.status === "pending" || s.isLoading });
+  const [navLoading, setNavLoading] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const { user, realUser, isImpersonating, ready } = useAuth();
   const navigate = useNavigate();
@@ -31,6 +33,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    setNavLoading(false);
+  }, [pathname]);
 
   useEffect(() => {
     const isPublicRoute = pathname === "/login" || pathname === "/" || pathname.endsWith("/confirmed");
@@ -87,7 +93,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             {/* Top Left Back Button */}
             <button
               type="button"
-              onClick={() => window.history.back()}
+              onClick={() => {
+                setNavLoading(true);
+                window.history.back();
+              }}
               className="press group inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-1.5 text-[0.82rem] font-semibold text-foreground shadow-xs transition-all hover:bg-muted hover:border-primary/40 hover:shadow-sm"
               title="Go back to previous page"
             >
@@ -108,6 +117,26 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
         </header>
+      )}
+
+      {/* Navigation Transition Loading Screen */}
+      {(navLoading || isRouterPending) && (
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-md transition-all duration-200 print:hidden animate-fade-in">
+          <div className="relative flex flex-col items-center">
+            <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+            <img
+              src="/logos/logo4.jpg"
+              alt="MVIT Logo"
+              className="absolute top-1/2 left-1/2 h-8 w-8 sm:h-10 sm:w-10 -translate-x-1/2 -translate-y-1/2 rounded-xl object-contain shadow-md"
+            />
+          </div>
+          <p className="mt-4 text-xs sm:text-sm font-bold text-foreground tracking-tight">
+            Loading page...
+          </p>
+          <p className="mt-0.5 text-[0.72rem] text-muted-foreground">
+            Central Hall Booking
+          </p>
+        </div>
       )}
 
       <main className={cn("mx-auto w-full", pathname === "/login" ? "max-w-md px-4 flex-1 flex flex-col justify-center py-2" : "max-w-5xl px-4 sm:px-6 pt-6 sm:pt-10", showUserUI ? "pb-36 sm:pb-44" : "pb-10")}>
@@ -159,6 +188,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                     key={i.to}
                     to={i.to}
                     onMouseEnter={() => setHovered(i.to)}
+                    onClick={() => {
+                      if (!pathname.startsWith(i.to)) {
+                        setNavLoading(true);
+                      }
+                    }}
                     className="relative flex flex-1 sm:flex-initial flex-col items-center justify-center gap-1 rounded-xl px-1 py-1 sm:px-3 sm:py-1.5 transition-all duration-200 min-w-0"
                   >
                     <span
