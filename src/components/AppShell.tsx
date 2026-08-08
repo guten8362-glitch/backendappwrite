@@ -135,27 +135,34 @@ export function AppShell({ children }: { children: ReactNode }) {
     const dx = touch.clientX - touchStart.x;
     const dy = touch.clientY - touchStart.y;
 
-    if (Math.abs(dx) > Math.abs(dy) * 1.2 && Math.abs(dx) > 8) {
+    if (Math.abs(dx) > Math.abs(dy) * 1.1 && Math.abs(dx) > 5) {
       setTouchDeltaX(dx);
       setIsDragging(true);
     }
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e: React.TouchEvent) => {
     if (!touchStart) return;
     
+    const touch = e.changedTouches[0];
+    const finalDx = touch.clientX - touchStart.x;
+    const finalDy = touch.clientY - touchStart.y;
     const duration = Date.now() - touchStart.time;
-    const velocity = Math.abs(touchDeltaX) / Math.max(duration, 1);
-    const minSwipeDistance = 40;
+    const absDx = Math.abs(finalDx);
+    const absDy = Math.abs(finalDy);
+    const velocity = absDx / Math.max(duration, 1);
 
-    if (isDragging && (Math.abs(touchDeltaX) >= minSwipeDistance || velocity > 0.25)) {
-      if (activeIdx !== -1) {
-        if (touchDeltaX < 0 && activeIdx < visibleNavItems.length - 1) {
+    if (absDx > absDy * 1.1 && (absDx >= 30 || velocity > 0.2)) {
+      const currentTabPath = getTabPath(pathname);
+      const currentIdx = visibleNavItems.findIndex((item) => currentTabPath.startsWith(item.to));
+
+      if (currentIdx !== -1) {
+        if (finalDx < 0 && currentIdx < visibleNavItems.length - 1) {
           // Swiped LEFT -> Go to NEXT (Right) Tab
-          navigate({ to: visibleNavItems[activeIdx + 1].to });
-        } else if (touchDeltaX > 0 && activeIdx > 0) {
+          navigate({ to: visibleNavItems[currentIdx + 1].to });
+        } else if (finalDx > 0 && currentIdx > 0) {
           // Swiped RIGHT -> Go to PREVIOUS (Left) Tab
-          navigate({ to: visibleNavItems[activeIdx - 1].to });
+          navigate({ to: visibleNavItems[currentIdx - 1].to });
         }
       }
     }
