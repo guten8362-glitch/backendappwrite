@@ -88,8 +88,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       } else if (isCoordinatorOrAdmin) {
         if (i.to === "/bookings" || i.to === "/auditoriums" || i.to === "/organizer") return false;
         if (i.to === "/coordinator" && user?.role === "admin") return false;
-        if (i.to === "/coordinator" || i.to === "/profile") return true;
-        if ((user?.role === "admin" || user?.role === "super_admin") && (i.to === "/admin" || i.to === "/calendar")) return true;
+        if (i.to === "/coordinator" || i.to === "/profile" || i.to === "/calendar") return true;
+        if ((user?.role === "admin" || user?.role === "super_admin") && i.to === "/admin") return true;
         return false;
       } else {
         if (i.adminOnly || i.to === "/coordinator" || i.to === "/organizer") return false;
